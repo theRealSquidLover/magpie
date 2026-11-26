@@ -36,6 +36,7 @@ jobs:
       - run: python tests/e2e_offline.py
       - run: python tests/e2e_photos.py
       - run: python tests/e2e_sync.py
+      - run: python tests/e2e_itemfirst.py
   build:
     needs: [test, e2e]
     if: github.event_name != 'pull_request'

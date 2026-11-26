@@ -78,8 +78,11 @@ try:
         pg.wait_for_function("S.prods.length>0")
         pg.wait_for_timeout(500)
         check("1 ...and after an offline reload", pg.evaluate("cur(1,'',1)") == 6, pg.evaluate("cur(1,'',1)"))
-        ctx.set_offline(False)
+        # unroute first: going online fires the app's own sync(), and if that one still hits the aborted
+        # /api/state it fails and the sync() below is ignored while it runs (next retry is 15 s away)
         pg.unroute("**/api/state")
+        ctx.set_offline(False)
+        pg.wait_for_function("!SY")
         pg.evaluate("sync()")
         pg.wait_for_function("SENT.length==0", timeout=10000)
         check("1 SENT cleared once a snapshot has it", pg.evaluate("cur(1,'',1)") == 6, pg.evaluate("cur(1,'',1)"))

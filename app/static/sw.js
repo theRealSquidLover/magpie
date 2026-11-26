@@ -1,5 +1,5 @@
 var B="__BUILD__",C="stock-"+B;
-self.addEventListener("install",function(e){e.waitUntil(caches.open(C).then(function(c){return c.addAll(["/","/manifest.webmanifest","/icon-180.png"])}));self.skipWaiting()});
+self.addEventListener("install",function(e){e.waitUntil(caches.open(C).then(function(c){return c.addAll(["/","/manifest.webmanifest","/icon-180.png","/icon-192.png","/favicon-32.png"])}));self.skipWaiting()});
 self.addEventListener("activate",function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k!=C}).map(function(k){return caches.delete(k)}))}).then(function(){return self.clients.claim()}))});
 // Server down or answering with an error: open the saved app rather than an error page.
 // The page: network first, so an update shows on the very next open. Falls back to the saved copy when offline or slower than 4s.

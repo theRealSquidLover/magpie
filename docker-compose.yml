@@ -5,6 +5,9 @@ services:
     image: ghcr.io/therealsquidlover/magpie:latest
     container_name: magpie
     restart: unless-stopped
+    labels:
+      # The icon Unraid shows for the container (Docker tab and dashboard).
+      net.unraid.docker.icon: "https://raw.githubusercontent.com/therealsquidlover/magpie/main/app/static/icon-512.png"
     # Bound to localhost only: not reachable from your LAN or the internet.
     # Phones get in through `tailscale serve --bg 18437` (see README).
     ports:

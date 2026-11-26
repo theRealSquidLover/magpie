@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><title>Magpie</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
-<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icon-180.png"><link rel="icon" href="/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Magpie"><meta name="theme-color" content="#1f6feb">
 <style>
@@ -62,13 +62,45 @@ input,select,textarea{scroll-margin:90px 0 140px}
 #sel.picked .ln:not(.on),#sel.picked .lh{display:none}#sel.picked{max-height:none}.pnm{display:none}#sel.picked .pnm{display:inline}.selchg{display:block;width:100%;padding:10px;border:0;border-top:1px solid var(--bd);background:none;color:var(--ac);font-size:15px;text-align:left}
 html.kb #bnav,html.kb #bmbar{display:none}html.kb body{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
 html.lock body{position:fixed;left:0;right:0;overflow:hidden}
-#gov,#mov,#sed,#phov{bottom:auto!important;top:var(--vvt,0)!important;height:var(--vvh,100dvh)!important}.gbd,#pdfpg{overscroll-behavior:contain}
+#gov,#mov,#sed,#phov,#ipg{bottom:auto!important;top:var(--vvt,0)!important;height:var(--vvh,100dvh)!important}.gbd,#pdfpg{overscroll-behavior:contain}
 html.kb .gft{padding-bottom:10px}
 /* the top tab row stays put while the page scrolls (owner request 2026-11-26). .stuck paints the strip under the status bar so rows don't show through;
    while typing it goes back to scrolling, so it doesn't take space above the keyboard */
 #nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--bg);margin:0 -12px;padding:4px 12px 8px}
 #nav.stuck{box-shadow:0 calc(-1*env(safe-area-inset-top,0px)) 0 var(--bg),0 1px 0 var(--bd)}
 html.kb #nav{position:static;box-shadow:none}
+/* item-first trial (Settings → Layout): item page #ipg, sheets <dialog id="isd">, + button #iqb */
+#ipg{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column}
+.ihd{display:flex;align-items:center;gap:12px}.ihd h2{margin:0;font-size:22px;line-height:1.2;text-wrap:balance}.iph{width:56px;height:56px;border-radius:10px;object-fit:cover;flex:none}
+.itot{font-size:24px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;line-height:1}.itot small{display:block;font-size:12px;font-weight:400;color:var(--mut);margin-top:3px}
+.iwc{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.iwc .chip{min-height:40px}
+.igw{overflow-x:auto;border:1px solid var(--bd);border-radius:12px;overscroll-behavior-x:contain}
+.igr{border-collapse:collapse;width:100%;font-size:16px}
+.igr th,.igr td{border-bottom:1px solid var(--bd);text-align:center;padding:0}
+.igr tr:last-child>*{border-bottom:0}
+.igr tr:first-child th{font-size:13px;color:var(--mut);font-weight:600;background:var(--card);padding:10px 8px;white-space:nowrap}
+.igr th[scope=row]{text-align:left;font-weight:400;padding:0 10px;position:sticky;left:0;background:var(--bg);white-space:nowrap}
+.igr tr:first-child th:first-child{position:sticky;left:0;text-align:left}
+.irl{display:flex;align-items:center;gap:8px}
+.isw{display:inline-block;flex:none;border:1px solid var(--bd);vertical-align:middle}
+.icl{display:block;width:100%;min-width:56px;min-height:48px;margin:0;border:0;border-radius:0;background:none;color:var(--fg);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.icl:active{background:var(--card)}.icl.z{color:var(--mut);font-weight:400}.icl.lo{color:var(--bad)}.icl.lo::after{content:"";display:block;width:16px;height:2px;margin:2px auto 0;background:var(--bad);border-radius:1px}
+.ih3{font-size:15px;margin:18px 0 4px}.irc{padding:7px 0;border-bottom:1px solid var(--bd);font-size:14px}
+.iac{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.iac .sm{min-height:46px;font-size:15px;margin:0}
+#isd{position:fixed;inset:auto 0;top:var(--vvt,0);height:var(--vvh,100dvh);max-height:none;width:100%;max-width:640px;margin:0 auto;padding:0;border:0;background:none;color:var(--fg);overscroll-behavior:contain}
+#isd[open]{display:flex;flex-direction:column;justify-content:flex-end}
+#isd::backdrop{background:rgba(0,0,0,.45);overflow:hidden;overscroll-behavior:contain}
+.ishb{background:var(--bg);border-radius:16px 16px 0 0;max-height:100%;display:flex;flex-direction:column;min-height:0;margin:0}
+.iqf{height:100%;border-radius:0;padding-top:env(safe-area-inset-top)}
+.ish{display:flex;justify-content:space-between;align-items:center;padding:12px 14px 6px}.ish b{font-size:18px}
+.isb{overflow-y:auto;overscroll-behavior:contain;padding:4px 14px 10px;flex:1;min-height:0}
+.isf{padding:8px 14px calc(env(safe-area-inset-bottom) + 10px);border-top:1px solid var(--bd)}html.kb .isf{padding-bottom:8px}.isf .btn{margin:0}
+.seg{display:flex;border:1px solid var(--bd);border-radius:10px;overflow:hidden}.seg button{flex:1;min-height:44px;margin:0;border:0;border-radius:0;border-right:1px solid var(--bd);background:var(--bg);color:var(--fg);font-size:15px}.seg button:last-child{border-right:0}.seg button.on{background:var(--ac);color:#fff}
+.isl{display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border:1px solid var(--ac);border-radius:10px;background:var(--card)}
+.isbig{font-size:28px;font-weight:600;text-align:center;padding:10px}
+.iqr{display:flex;align-items:center;gap:10px;width:100%;margin:0;padding:10px 4px;border:0;border-radius:0;border-bottom:1px solid var(--bd);background:none;color:var(--fg);text-align:left;font-size:15px}.iqr .grow{flex:1;min-width:0}
+#iqb{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom) + 72px);z-index:41;width:58px;height:58px;margin:0;padding:0;border-radius:50%;border:0;background:var(--ac);color:#fff;font-size:32px;line-height:1;box-shadow:0 3px 10px rgba(0,0,0,.3)}
+html.kb #iqb{display:none}
 </style></head><body>
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><h1 style="margin:4px 0"><span id="ttl">Magpie</span> <span id="hdr" class="m" style="display:inline;font-weight:400"></span></h1></div><div id="pdfov" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px"></div><div id="verbar"></div><div id="phbar"></div>
 <nav id="nav"></nav><div id="scanbar"></div><input type="file" id="fscan" accept="image/*" style="position:fixed;left:-999px;top:0;width:1px;height:1px;opacity:0"><div id="main"></div><div id="ovw"></div><div id="bnav"></div>
@@ -176,7 +208,7 @@ async function sync(){if(SY)return;if(navigator.onLine===false){ONLINE=false;reb
  catch(e){if(e&&e.status){ONLINE=true;SYERR=e.message}else ONLINE=false}
  SY=false;rebuild();soft();if(SYAGAIN&&ONLINE){SYAGAIN=false;setTimeout(sync,0)}}
 function hdr(){var n=PEND.length;$("hdr").innerHTML=(ONLINE?(SYERR?'<span style="color:var(--bad)">●</span> sync problem: '+esc(SYERR):'<span style="color:var(--ok)">●</span> online'):'<span style="color:var(--bad)">●</span> offline')+(n?" · "+n+" pending":"")+(REJ.length?" · "+REJ.length+" rejected":"")+(PFULL?' · <span style="color:var(--bad)">phone storage full: stay online until it syncs</span>':"")+(SV.user?" · "+esc(SV.user):"");bellRender();verBar();phBar()}
-function soft(){hdr();var w=$("flt");if(w&&!w.contains(document.activeElement))w.innerHTML=fltIn();if($("sel")&&(tab=="Transfer"||tab=="Sale/Adjust")){var sc=$("sel").scrollTop;refSel(true);$("sel").scrollTop=sc}if(tab=="Stock"&&!ED&&!X.pid&&$("res"))$("res").innerHTML=stockHtml();
+function soft(){hdr();if(IP!==null&&$("ipg"))itemDraw();var w=$("flt");if(w&&!w.contains(document.activeElement))w.innerHTML=fltIn();if($("sel")&&(tab=="Transfer"||tab=="Sale/Adjust")){var sc=$("sel").scrollTop;refSel(true);$("sel").scrollTop=sc}if(tab=="Stock"&&!ED&&!X.pid&&$("res"))$("res").innerHTML=stockHtml();
  if(tab=="Log"&&!RVK&&!(document.activeElement&&/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))){var y=window.scrollY,m0=msg;render();msg=m0;window.scrollTo(0,y)}}
 async function call(fn,ok){try{await fn();await getState();persist(true);rebuild();ED=null;RN=null;done(ok)}catch(e){try{await getState();persist(true);rebuild()}catch(e2){}fail("Couldn’t save: "+e.message+(ONLINE?"":" (this action needs a connection)"))}}
 /* ---------- messages ---------- */
@@ -241,7 +273,7 @@ function phRetry(u){var keep=[],back=[];REJ.forEach(function(x){if(x.op.kind=="p
  REJ=keep;back.forEach(function(o){PEND.push(o)});rebuild();persist();soft();if(SY)SYAGAIN=true;setTimeout(sync,0)}
 function phDrop(u){REJ=REJ.filter(function(x){return x.op.uuid!=u});persist();soft();if(tab=="Log")render()}
 /* ---------- stock tree ---------- */
-function tg(k){O[k]=!O[k];$("res").innerHTML=stockHtml()}
+function tg(k){if(IFIRST&&/^p\d+$/.test(k)&&!O[k]&&P(+k.slice(1))&&!P(+k.slice(1)).pend)return itemOpen(+k.slice(1));O[k]=!O[k];$("res").innerHTML=stockHtml()}
 var WF=(function(){try{return+localStorage.getItem("wf")||0}catch(e){return 0}})();
 function wfv(){return WF&&act().some(function(l){return l.id==WF})?WF:0}
 function setWF(id){WF=id;try{localStorage.setItem("wf",id)}catch(e){}render()}
@@ -738,18 +770,99 @@ function render(){var of=$("fl");if(of)of.value="";SELK="";SELP=0;if(!act().some
  if(tab=="Sale/Adjust")h+=rows().length?sel+'<p class="m" id="selh">Tap a line above to sell, recount or adjust it.</p><div id="self" hidden><label>Type</label><select id="t" onchange="saLbl()"><option value="sale">Sale (removes stock)</option><option value="count">Recount (I counted N, set it to N)</option><option value="adjust">Adjust (add or remove, note required)</option></select><div id="adw" style="display:none"><label>Direction</label><select id="adir"><option value="1">Add to stock (+)</option><option value="-1">Remove from stock (−)</option></select></div><label id="ql">Cartons</label><input id="q" type="number" inputmode="numeric"><label>Note</label><input id="note"><button class="btn" onclick="sale()">Record</button></div>':'<p class="m">No stock yet.</p>';
  if(tab=="Transfer")h+=rows().length?sel+'<p class="m" id="selh">Tap a line above to move it.</p><div id="self" hidden><label>Move to</label><select id="to">'+lo+'</select><label id="ql">Cartons to move</label><input id="q" type="number" inputmode="numeric"><button class="btn" onclick="transfer()">Transfer</button></div>':'<p class="m">No stock yet.</p>';
  if(tab=="Notifications")h+='<div id="bellp">'+bellHtml()+"</div>";
- if(tab=="Settings")h+='<div id="st"><p class="m">Loading…</p></div>';
+ if(tab=="Settings")h+=layoutCard()+'<div id="st"><p class="m">Loading…</p></div>';
  if(tab=="Report")h+='<div id="xr">'+xrHtml()+'</div><label>Year</label><input id="y" type="number" value="'+new Date().getFullYear()+'" oninput="report()"><div id="rep"></div>';
  if(tab=="Log"){if(REJ.length)h+='<div class="msg err"><b>Rejected by the server (not saved):</b>'+REJ.map(function(x){return'<div>'+esc(x.op.kind)+" · "+esc(x.op.product||"")+" · "+esc(x.op.colour||"")+" "+esc(x.op.size||"")+" × "+esc(x.op.qty||"")+" — "+esc(x.msg)+"</div>"}).join("")+'<button class="sm" style="margin-top:8px" onclick="REJ=[];persist();render()">Dismiss</button></div>';
   h+=S.mv.length?(function(){var rv=revInfo();return logRows().reverse().slice(0,300).map(function(x){var gone=x.op&&rv.done[x.op],can=!x.pend&&x.op&&!x.rv&&!gone&&x.qty;return'<div class="row"><div class="grow"><b'+(gone?' style="text-decoration:line-through"':"")+'>'+(x.rv?"↩ ":"")+(x.type=="move"?"moved "+x.qty+" ("+esc(SNAME(x.loc,x.from))+" → "+esc(SNAME(x.loc,x.to))+")":x.type+" "+(x.qty>0?"+":"")+x.qty)+" · "+esc(vl(x.v))+(x.flag?" ⚠":"")+(x.pend?" ⏳":"")+'</b><span class="m">'+(x.rv?"reversal of the "+esc(rv.what[x.rv]||"movement")+" · ":"")+(gone?"reversed "+fmt(rv.done[x.op])+" · ":"")+(x.lot?"lot "+esc(x.lot):"no lot")+" · "+esc(LN(x.loc))+" · "+fmt(x.ts)+(x.user?" · "+esc(x.user):"")+(x.note?" · "+esc(x.note):"")+(x.flag?" · went below zero, check":"")+(x.pend?" · waiting to sync":"")+"</span>"+(can&&RVK==x.op?revAskHtml(x):"")+"</div>"+(can&&RVK!=x.op?'<button class="sm" data-op="'+esc(x.op)+'" onclick="RVK=this.dataset.op;render()">Reverse</button>':"")+"</div>"}).join("")})():'<p class="m">Empty.</p>'}
  if(tab=="Warehouses")h+=S.locs.map(function(l){var used=S.mv.some(function(m){return m.loc==l.id}),st=rows().some(function(x){return x.loc==l.id});
   return'<div class="row"><div class="grow">'+(RN==l.id?'<input id="rn" value="'+esc(l.name)+'">':'<b>'+esc(l.name)+'</b>')+(l.on?"":'<span class="m">archived</span>')+'<span class="m">'+(l.role=="picking"?"Picking":"Holding")+(l.hs?" · sections: "+(l.secs.length?esc(l.secs.map(function(z){return z.name}).join(", ")):"none drawn yet"):"")+'</span></div>'+(RN==l.id?'<button class="sm" onclick="lsave('+l.id+')">Save</button><button class="sm" onclick="RN=null;render()">Cancel</button>':'<select class="lm" onchange="lact('+l.id+',this)"><option value="">Options</option><option value="role">Make '+(l.role=="picking"?"holding":"picking")+'</option><option value="ren">Rename</option><option value="sec">Sections &amp; map…</option>'+(l.on?(st?"":'<option value="arc">Archive</option>'):'<option value="arc">Restore</option>')+(used?"":'<option value="del">Delete</option>')+"</select>")+"</div>"}).join("")+'<label>New warehouse</label><input id="nl"><label>Type</label><select id="nr"><option value="holding">Holding (bulk storage)</option><option value="picking">Picking (orders are picked from here)</option></select><button class="btn" onclick="ladd()">Add warehouse</button><p class="m"><b>Picking</b> warehouses are where orders are picked; the bell lists items that need topping up there from <b>holding</b>. Delete is only offered for warehouses with no history. Others can be archived once empty. Needs a connection.</p>';
  h+='<div id="mb">'+(msg&&msg.e?'<div class="msg err">'+esc(msg.t)+"</div>":"")+"</div>";if(msg&&!msg.e&&tab!="Receive"){toast(msg.t,0);msg=null}
- $("main").innerHTML=h;if(tab=="Report")report();if(tab=="Receive"){PPCAUTO=true;chips();rbUpd();secField();prepUpd()}if(tab=="Settings")loadSettings();
+ if(tab=="Stock"&&IFIRST&&!BMV)h+='<button id="iqb" type="button" aria-label="Sell, move or recount" onclick="quick(\'sale\')">+</button>';$("main").innerHTML=h;if(IP!==null&&$("ipg"))itemDraw();if(tab=="Report")report();if(tab=="Receive"){PPCAUTO=true;chips();rbUpd();secField();prepUpd()}if(tab=="Settings")loadSettings();
  $("ovw").innerHTML=Z&&P(Z)&&P(Z).photo?'<div id="ov" onclick="Z=null;render()"><img src="'+P(Z).photo+'"></div>':""}
+/* ---------- item-first trial (Settings → Layout; per phone, default off; owner trial from 2026-11-26) ----------
+   With it on, tapping an item on Stock opens an item page (#ipg) with a colour × size grid. Tapping a number opens a
+   Sell / Move / Recount sheet (<dialog id="isd">). The + button (#iqb) finds any line. The sheets queue exactly the ops
+   Sale/Adjust and Transfer queue (sale, adjust, transfer via base()), so both layouts share all data and can be switched freely. */
+var IFIRST=(function(){try{return localStorage.getItem("ifirst")=="1"}catch(e){return false}})(),IP=null,IW=0,ISH=null,QK="sale",QP=0;
+function setIFirst(on){IFIRST=!!on;try{localStorage.setItem("ifirst",on?"1":"0")}catch(e){}render()}
+function layoutCard(){return cardx("Layout","This phone only",IFIRST?pill("Item page","ok"):pill("Classic","off"),'<label for="lay">Stock layout</label><select id="lay" onchange="setIFirst(this.value==\'1\')"><option value="0"'+(IFIRST?"":" selected")+'>Classic</option><option value="1"'+(IFIRST?" selected":"")+'>Item page (trial)</option></select><p class="m" style="margin-top:8px">Item page: tap an item on Stock to see its colours and sizes as a grid, then tap a number to sell, move or recount that line. The + button on Stock finds any line. Sale/Adjust and Transfer keep working as before.</p>')}
+/* colour swatch: the colour's own photo, else a colour read from its name, a rainbow for assorted/mixed, grey if nothing matches */
+var SWC={black:"#1b1b1b",white:"#fafafa",ivory:"#f5efdf",cream:"#efe6d2",ecru:"#e8dcc2",natural:"#e6dcc6",beige:"#d9c7a5",sand:"#d6c29a",stone:"#b9b0a0",taupe:"#8b7d6b",camel:"#c19a6b",tan:"#c8a27a",khaki:"#a89a6a",brown:"#6b4a2f",chocolate:"#4a2f1f",coffee:"#5b3f2b",mocha:"#6f4e37",grey:"#9a9c9e",gray:"#9a9c9e",charcoal:"#3d4045",anthracite:"#383a3d",silver:"#c4c6c8",melange:"#a7a9ab",navy:"#24324f",blue:"#3b6db3",royal:"#2b4fb3",sky:"#8ec5ea",denim:"#4f6d8f",teal:"#2c7a7b",turquoise:"#38b2ac",aqua:"#62c9d0",mint:"#a8e0c4",green:"#3f8a55",bottle:"#1f4d36",olive:"#6b7039",sage:"#a7b59a",lime:"#9bd04a",emerald:"#2e8b57",yellow:"#f2cf3a",lemon:"#f4e26b",mustard:"#d4a72c",gold:"#c9a13b",orange:"#ef8a2f",peach:"#f6c1a0",apricot:"#f4b183",coral:"#f07c6c",salmon:"#f29b85",red:"#c23b33",burgundy:"#6d1f2b",bordeaux:"#5c1a24",maroon:"#6b1e1e",wine:"#722f37",pink:"#f0a8c0",blush:"#e8c3bd",rose:"#d9839b",fuchsia:"#c2378a",magenta:"#c2378a",purple:"#6b3fa0",lilac:"#c3a9dd",lavender:"#c5b5e3",violet:"#7a4bb0",plum:"#6e3b5c",aubergine:"#4b2a3f"};
+var SWRB="conic-gradient(#e53935,#fb8c00,#fdd835,#43a047,#1e88e5,#8e24aa,#e53935)";
+function swCol(c){var t=String(c||"").toLowerCase();if(!t)return"";if(/assort|mix|multi|rainbow|various|asst/.test(t))return SWRB;var best="";
+ Object.keys(SWC).forEach(function(k){if(k.length>best.length&&new RegExp("(^|[^a-z])"+k).test(t))best=k});if(!best)return"";var x=SWC[best];
+ if(/(^|[^a-z])(light|pale|baby)/.test(t))return"color-mix(in srgb,"+x+" 55%,#fff)";if(/(^|[^a-z])(dark|deep)/.test(t))return"color-mix(in srgb,"+x+" 65%,#000)";return x}
+function swatch(pid,c,big){var u=cphU(pid,c),z=big?32:16,st="width:"+z+"px;height:"+z+"px;border-radius:"+(big?7:4)+"px;";
+ if(u)return'<img class="isw" src="'+esc(u)+'" alt="" style="'+st+'object-fit:cover">';return'<span class="isw" aria-hidden="true" style="'+st+"background:"+(swCol(c)||"var(--card)")+'"></span>'}
+/* item page */
+function itemOpen(pid){if(!P(pid))return;if(IP===null)try{history.pushState({ip:pid},"")}catch(e){}IP=pid;IW=0;itemDraw();var g=$("ipg");if(g)g.querySelector(".gbd").scrollTop=0}
+function itemBack(){if(history.state&&history.state.ip)history.back();else itemClose()}
+function itemClose(){IP=null;sheetClose();var o=$("ipg");if(o)o.remove();if(window.ovLock)ovLock()}
+addEventListener("popstate",function(){if(IP!==null)itemClose()});
+function itemDo(f){var id=IP;itemBack();setTimeout(function(){f(id)},80)}
+function itemDraw(){var p=P(IP);if(!p)return itemClose();var o=$("ipg"),st=o?o.querySelector(".gbd").scrollTop:0;if(!o){o=document.createElement("div");o.id="ipg";document.body.appendChild(o)}
+ var live=function(r){return act().some(function(l){return l.id==r.loc})},all=rows().filter(function(r){var v=V(r.v);return v&&v.prod==p.id&&live(r)}),ln=all.filter(function(r){return!IW||r.loc==IW}),
+  vs=S.vars.filter(function(v){return v.prod==p.id&&(!v.disc||all.some(function(r){return r.v==v.id}))}),sw=p.grp=="size",
+  RF=sw?"size":"colour",CF=sw?"colour":"size",rws=uniq(vs.map(function(v){return v[RF]||""})).sort(dimCmp(RF)),cls=uniq(vs.map(function(v){return v[CF]||""})).sort(dimCmp(CF)),
+  low={},tot=function(vid){return ln.filter(function(r){return r.v==vid}).reduce(function(a,r){return a+r.q},0)};
+ alerts().concat(refills()).forEach(function(x){low[x.v.id]=1});
+ var one=cls.length==1&&!cls[0],g='<div class="igw" role="region" aria-label="Cartons by '+RF+" and "+CF+'" tabindex="0"><table class="igr"><tr><th>'+(one?(RF=="colour"?"Colour":"Size"):(RF=="colour"?"Colour \\ size":"Size \\ colour"))+"</th>"+(one?"<th>Cartons</th>":cls.map(function(c){return"<th>"+esc(c||"n/a")+"</th>"}).join(""))+"</tr>";
+ rws.forEach(function(a){g+='<tr><th scope="row"><span class="irl">'+(RF=="colour"?swatch(p.id,a):"")+"<span>"+esc(a||"n/a")+"</span></span></th>"+cls.map(function(b){var v=vs.find(function(x){return(x[RF]||"")==a&&(x[CF]||"")==b});if(!v)return'<td class="ix"></td>';var q=tot(v.id);
+  return'<td><button type="button" class="icl'+(q?"":" z")+(low[v.id]?" lo":"")+'" data-v="'+v.id+'" onclick="cellTap(+this.dataset.v)" aria-label="'+esc(vl(v.id))+": "+q+' cartons">'+(q||"–")+"</button></td>"}).join("")+"</tr>"});
+ g+="</table></div>";
+ var wt={};all.forEach(function(r){wt[r.loc]=(wt[r.loc]||0)+r.q});var wl=act().filter(function(l){return wt[l.id]});
+ var ch='<div class="iwc"><button type="button" class="chip'+(IW?"":" on")+'" onclick="IW=0;itemDraw()">All '+sum(all)+"</button>"+wl.map(function(l){return'<button type="button" class="chip'+(IW==l.id?" on":"")+'" data-w="'+l.id+'" onclick="IW=+this.dataset.w;itemDraw()">'+esc(l.name)+" "+wt[l.id]+"</button>"}).join("")+"</div>";
+ var vid={};vs.forEach(function(v){vid[v.id]=1});S.vars.forEach(function(v){if(v.prod==p.id)vid[v.id]=1});
+ var rec=S.mv.filter(function(m){return vid[m.v]}).slice().sort(function(a,b){return String(b.ts).localeCompare(String(a.ts))}).slice(0,6).map(function(m){var v=V(m.v)||{};return'<div class="irc"><b>'+esc({receive:"Received",sale:"Sold",transfer:"Moved",adjust:"Adjusted",move:"Section move",reverse:"Reversed"}[m.type]||m.type)+" "+(m.qty>0&&m.type!="sale"?"+":"")+(m.type=="sale"?-m.qty:m.qty)+'</b> <span class="m" style="display:inline">'+esc([v.colour,v.size].filter(Boolean).join(" · ")||"n/a")+" · "+esc(LN(m.loc))+" · "+esc(itemWhen(m.ts))+(m.pend?" · waiting to sync":"")+"</span></div>"}).join("");
+ o.innerHTML='<div class="ghd"><button type="button" class="sm" onclick="itemBack()" aria-label="Back to Stock">‹ Stock</button><button type="button" class="sm" onclick="itemDo(function(id){O[\'p\'+id]=1;edt(\'p\'+id)})">Edit item</button></div>'+
+  '<div class="gbd"><div class="ihd">'+(p.photo?'<img class="iph" src="'+esc(p.photo)+'" alt="">':"")+'<div class="grow"><h2>'+esc(p.name)+"</h2>"+(p.alias?'<span class="m">'+esc(p.alias)+"</span>":"")+(ppk(p)?'<span class="m">'+esc(ppk(p))+" per carton</span>":"")+'</div><div class="itot">'+sum(ln)+"<small>ctn</small></div></div>"+
+  (wl.length>1||IW?ch:"")+'<p class="m" style="margin:12px 0 6px">Tap a number to sell, move or recount that line.'+(Object.keys(low).length?" Red: needs reordering or a picking top-up.":"")+"</p>"+g+
+  (rec?'<h3 class="ih3">Recent</h3>'+rec:"")+"</div>"+
+  '<div class="gft iac"><button type="button" class="sm" onclick="itemDo(function(id){pendRcv(id)})">Receive</button><button type="button" class="sm" onclick="quick(\'sale\',IP)">Sell</button><button type="button" class="sm" onclick="quick(\'transfer\',IP)">Move</button><button type="button" class="sm" onclick="quick(\'count\',IP)">Recount</button></div>';
+ o.querySelector(".gbd").scrollTop=st}
+function itemWhen(ts){try{var d=new Date(ts),n=new Date();return d.toDateString()==n.toDateString()?"today "+d.toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):d.toLocaleDateString([],{day:"numeric",month:"short"})}catch(e){return""}}
+function cellTap(vid){if(!rows().some(function(r){return r.v==vid&&r.q>0&&act().some(function(l){return l.id==r.loc})}))return toast("None of "+vl(vid)+" in stock. Use Receive to add some, or Recount from Sale/Adjust.",0);
+ var l=rows().filter(function(r){return r.v==vid&&r.q>0&&(!IW||r.loc==IW)}).sort(function(a,b){return b.q-a.q})[0];sheetOpen("sale",vid,l?lk(l):"")}
+/* sheets: one native modal dialog (page behind is inert; Esc / Android back close it), sized to the visible area for the iOS keyboard */
+function dlg(h){var d=$("isd");if(d){d.innerHTML=h;return d}d=document.createElement("dialog");d.id="isd";d.setAttribute("aria-labelledby","isdt");
+ d.addEventListener("click",function(e){if(e.target===d)sheetClose()});d.addEventListener("close",function(){if(d.parentNode)d.remove();ISH=null;if(window.ovLock)ovLock()});
+ document.body.appendChild(d);d.innerHTML=h;d.showModal();return d}
+function sheetClose(){var d=$("isd");ISH=null;if(d){if(d.open)d.close();else d.remove()}}
+var SHT={sale:"Sell",transfer:"Move",count:"Recount"};
+function shLines(){return rows().filter(function(r){return r.v==ISH.v&&(ISH.k=="count"?r.q!==0:r.q>0)&&act().some(function(l){return l.id==r.loc})}).sort(function(a,b){return nat(LN(a.loc),LN(b.loc))||nat(a.lot,b.lot)})}
+function sheetOpen(k,vid,key){ISH={k:k,v:vid,key:key||""};sheetDraw();var f=$("isq");if(f)f.focus()}
+function sheetDraw(keep){var l=shLines(),v=V(ISH.v);if(!v)return sheetClose();
+ if(!l.some(function(r){return lk(r)==ISH.key})){var w=l.slice().sort(function(a,b){return b.q-a.q})[0];ISH.key=w?lk(w):""}
+ var r=l.find(function(x){return lk(x)==ISH.key}),q=keep&&$("isq")?$("isq").value:"",n=keep&&$("isn")?$("isn").value:"",k=ISH.k;
+ dlg('<form class="ishb" onsubmit="event.preventDefault();sheetSave()"><div class="ish"><b id="isdt">'+SHT[k]+'</b><button type="button" class="sm" onclick="sheetClose()">Cancel</button></div><div class="isb">'+
+  '<div class="seg" role="group" aria-label="Action">'+["sale","transfer","count"].map(function(x){return'<button type="button" class="'+(x==k?"on":"")+'" aria-pressed="'+(x==k)+'" onclick="ISH.k=\''+x+'\';sheetDraw(1)">'+SHT[x]+"</button>"}).join("")+"</div>"+
+  '<div class="isl">'+swatch(v.prod,v.colour,1)+"<b>"+esc(vl(v.id))+"</b></div>"+
+  (l.length?'<label for="isf">From</label><select id="isf" onchange="ISH.key=this.value;sheetDraw(1)">'+l.map(function(x){return'<option value="'+esc(lk(x))+'"'+(lk(x)==ISH.key?" selected":"")+">"+esc(LN(x.loc))+(x.lot?" · lot "+esc(x.lot):"")+" ("+x.q+" ctn)</option>"}).join("")+"</select>":'<p class="m" style="margin-top:12px">None of this line in stock.</p>')+
+  (k=="transfer"?'<label for="ist">To</label><select id="ist">'+act().filter(function(x){return!r||x.id!=r.loc}).map(function(x){return'<option value="'+x.id+'">'+esc(x.name)+"</option>"}).join("")+"</select>":"")+
+  '<label for="isq">'+(k=="count"?"Cartons counted, total on the shelf now"+(r?" (system says "+r.q+")":""):k=="transfer"?"Cartons to move":"Cartons sold")+'</label><input id="isq" class="isbig" type="text" inputmode="numeric" enterkeyhint="done" autocomplete="off" value="'+esc(q)+'">'+
+  (k!="transfer"?'<label for="isn">Note (optional)</label><input id="isn" autocomplete="off" enterkeyhint="done" value="'+esc(n)+'" placeholder="'+(k=="sale"?"Customer or order":"")+'">':"")+
+  '<div id="ise"></div></div><div class="isf"><button class="btn" type="submit">'+{sale:"Record sale",transfer:"Move cartons",count:"Save count"}[k]+"</button></div></form>")}
+function sErr(t){var e=$("ise");if(e)e.innerHTML='<div class="msg err">'+esc(t)+"</div>";var f=$("isq");if(f)f.focus()}
+function sheetSave(){if(!ISH)return;var r=shLines().find(function(x){return lk(x)==ISH.key});if(!r)return sErr("There’s none of this line in stock to "+SHT[ISH.k].toLowerCase()+".");
+ var q=whole($("isq").value),n=$("isn")?$("isn").value.trim():"",k=ISH.k,c=cur(r.v,r.lot,r.loc),t;
+ if(n.length>LIM.note[0])return sErr("The note is too long ("+n.length+" characters; the most is "+LIM.note[0]+"). Nothing was saved.");
+ if(q>MAXQ)return sErr("More than "+MAXQ+" cartons in one entry: please check the number. Nothing was saved.");
+ if(k=="count"){if(isNaN(q)||q<0)return sErr("Enter the number of cartons you counted (0 is fine). Nothing was saved.");var d=q-c;
+  if(!d)t="Count matches the system ("+q+"). Nothing to record.";else{var tail=": system "+c+", counted "+q+(n?" · "+n:"");queue(d<0?base(r,"sale",-d,{note:"Recount (result of sale)"+tail}):base(r,"adjust",d,{note:"Recount"+tail}));t="Recount saved: "+c+" → "+q+(d<0?" ("+(-d)+" recorded as sold).":" (+"+d+" adjustment).")}}
+ else{if(!(q>0))return sErr("Enter the number of cartons. Nothing was saved.");if(c-q<0)return sErr("Only "+c+" cartons there. Nothing was saved.");
+  if(k=="sale"){queue(base(r,"sale",q,{note:n}));t="Sold "+q+" cartons of "+vl(r.v)+"."}
+  else{var to=+$("ist").value;if(!to||to==r.loc)return sErr("Pick another warehouse to move to.");queue(base(r,"transfer",q,{to:to}));t="Moved "+q+" cartons of "+vl(r.v)+" to "+LN(to)+"."}}
+ sheetClose();done(t);if(IP!==null)itemDraw()}
+/* the + button, or Sell / Move / Recount on an item page: one search straight to a line */
+function quick(k,pid){QK=k||"sale";QP=pid||0;ISH=null;
+ dlg('<div class="ishb iqf"><div class="ish"><b id="isdt">'+(QP?SHT[QK]+": pick a line":"Sell, move or recount")+'</b><button type="button" class="sm" onclick="sheetClose()">Cancel</button></div><div style="padding:0 14px"><input id="iqq" type="search" enterkeyhint="search" autocomplete="off" aria-label="Search stock" placeholder="Item, colour, size, lot, warehouse" oninput="quickList()"></div><div class="isb" id="iql"></div></div>');
+ quickList();if(!QP)$("iqq").focus()}
+function quickList(){var b=$("iql");if(!b)return;var ws=words($("iqq").value),l=rows().filter(function(r){var v=V(r.v);return r.q>0&&v&&(!QP||v.prod==QP)&&act().some(function(x){return x.id==r.loc})&&(!ws.length||hasAll(vl(r.v)+" "+(P(v.prod).alias||"")+" "+r.lot+" "+LN(r.loc),ws))})
+  .sort(function(a,c){var x=V(a.v),y=V(c.v);return nat(P(x.prod).name,P(y.prod).name)||nat(x.colour||"",y.colour||"")||szCmp(x.size||"",y.size||"")||nat(LN(a.loc),LN(c.loc))||nat(a.lot,c.lot)}).slice(0,80);
+ b.innerHTML=l.length?l.map(function(r){var v=V(r.v);return'<button type="button" class="iqr" data-v="'+r.v+'" data-k="'+esc(lk(r))+'" onclick="sheetOpen(QK,+this.dataset.v,this.dataset.k)">'+swatch(v.prod,v.colour)+'<span class="grow"><b>'+esc(vl(r.v))+'</b><span class="m">'+(r.lot?"lot "+esc(r.lot)+" · ":"")+esc(LN(r.loc))+'</span></span><span class="qn">'+r.q+"<small>ctn</small></span></button>"}).join(""):'<p class="m" style="padding:10px 0">No stock matches.</p>'}
 /* iOS keeps the page height when the keyboard opens (only visualViewport shrinks), so: track the visible area, hide the bottom bars
    while typing, pin full-screen panels to the visible area, lock the page behind a panel, and bring a focused field into view */
-(function(){var R=document.documentElement,vv=window.visualViewport,Y=null,OVS="#gov,#mov,#sed,#phov,#ov",BH=0,BW=0;
+(function(){var R=document.documentElement,vv=window.visualViewport,Y=null,OVS="#gov,#mov,#sed,#phov,#ov,#ipg,#isd",BH=0,BW=0;
  function isF(e){return e&&(e.tagName=="TEXTAREA"||e.tagName=="INPUT"&&!/^(checkbox|radio|button|submit|file|range|color)$/.test(e.type))}
  function ovOpen(){var p=$("pdfov");return!!document.querySelector(OVS)||!!(p&&p.style.display&&p.style.display!="none")}
  function lock(){var on=ovOpen();if(on&&Y===null){Y=window.scrollY;document.body.style.top=-Y+"px";R.classList.add("lock")}else if(!on&&Y!==null){R.classList.remove("lock");document.body.style.top="";window.scrollTo(0,Y);Y=null}}
