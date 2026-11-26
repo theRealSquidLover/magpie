@@ -4,6 +4,8 @@ import os
 import sqlite3
 import time
 
+from .creds import SECRET_SETTINGS
+
 DATA = os.environ.get("DATA_DIR", "/data")
 DB = os.path.join(DATA, "stock.db")
 
@@ -114,6 +116,57 @@ def _backup_to(c, path):
     dst = sqlite3.connect(path)
     c.backup(dst)
     dst.close()
+    scrub(path)
+
+
+def scrub(path):
+    """Take the saved API key and bot token out of a backup copy, so a backup that gets copied somewhere never carries
+    them. The file is rewritten (VACUUM) so the deleted text doesn't linger in its free pages, and it is left in
+    rollback-journal mode: a single self-contained file, with no -wal beside it. Returns True if anything was removed."""
+    d = sqlite3.connect(path, isolation_level=None)
+    try:
+        d.execute("PRAGMA journal_mode=DELETE")
+        if not d.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='settings'").fetchone():
+            return False
+        q = ",".join("?" * len(SECRET_SETTINGS))
+        if not d.execute("SELECT 1 FROM settings WHERE k IN (%s)" % q, SECRET_SETTINGS).fetchone():
+            return False
+        d.execute("PRAGMA secure_delete=ON")
+        d.execute("DELETE FROM settings WHERE k IN (%s)" % q, SECRET_SETTINGS)
+        d.execute("VACUUM")
+        return True
+    finally:
+        d.close()
+
+
+def scrub_old_backups():
+    """Backups made by older versions still hold the key and token: clean them once (keeping each file's date,
+    which decides which pre-update copies are kept). A file that can't be opened is left as it is."""
+    for path in glob.glob(os.path.join(DATA, "backups", "*.db")):
+        try:
+            st = os.stat(path)
+            if scrub(path):
+                os.utime(path, (st.st_atime, st.st_mtime))
+        except (OSError, sqlite3.Error) as e:
+            print("magpie: couldn't clean secrets out of backup %s: %s" % (os.path.basename(path), e), flush=True)
+
+
+def lock_down():
+    """Only the app's own user may read or change its data: stock.db, backups, photos, maps (files 600, folders 700).
+    New files get the same through the umask the app sets at start. A file the app doesn't own (or a read-only
+    volume) is left as it is."""
+    def fix(p, mode):
+        try:
+            if not os.path.islink(p) and (os.stat(p).st_mode & 0o777) != mode:
+                os.chmod(p, mode)
+        except OSError:
+            pass
+    fix(DATA, 0o700)
+    for root, dirs, files in os.walk(DATA):
+        for n in dirs:
+            fix(os.path.join(root, n), 0o700)
+        for n in files:
+            fix(os.path.join(root, n), 0o600)
 
 
 def migrate():

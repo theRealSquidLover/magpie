@@ -1853,3 +1853,148 @@ def test_delete_refuses_lines_with_history(cl):
     c.close()
     assert cl.post("/api/product/%d/delete" % pid, json={}).status_code == 409
     assert any(x["name"] == "Hist Item" for x in cl.get("/api/state").json()["prods"])
+
+
+# ---------- security hardening (secrets out of backups, secrets from the container, file permissions, gate) ----------
+
+def _backup_bytes_and_settings(path):
+    import sqlite3
+    raw = open(path, "rb").read()
+    c = sqlite3.connect(path)
+    try:
+        return raw, dict(c.execute("SELECT k, v FROM settings").fetchall())
+    finally:
+        c.close()
+
+
+def test_backups_never_hold_the_api_key_or_bot_token(cl, monkeypatch):
+    import sqlite3
+    import time
+
+    from app import db, tg
+    key, tok = "sk-ant-SECRETKEY-" + "k" * 40, "123456:SECRETTOKEN" + "t" * 30
+    monkeypatch.setattr(tg, "api", lambda t, m, p=None, timeout=15: {"username": "stockbot"})
+    assert cl.post("/api/settings", json={"api_key": key}).status_code == 200
+    assert cl.post("/api/telegram", json={"token": tok, "group": "-100"}).status_code == 200
+    d = os.path.join(db.DATA, "backups")
+    os.makedirs(d, exist_ok=True)
+    path = os.path.join(d, "daily-%s.db" % time.strftime("%Y%m%d"))
+    if os.path.exists(path):
+        os.remove(path)
+    db.backup_daily()
+    raw, kv = _backup_bytes_and_settings(path)
+    assert "anthropic_api_key" not in kv and "tg_token" not in kv
+    assert kv.get("tg_group") == "-100"  # everything else is kept
+    assert b"SECRETKEY" not in raw and b"SECRETTOKEN" not in raw  # not even in free pages
+    assert not os.path.exists(path + "-wal")  # one self-contained file
+    c = sqlite3.connect(path)
+    assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok" and c.execute("SELECT COUNT(*) FROM locations").fetchone()[0] > 0
+    c.close()
+    # the live database still has both, so the app keeps working
+    assert cl.get("/api/settings").json()["key_set"] and cl.get("/api/telegram").json()["token_set"]
+
+    # a backup made by an older version (secrets inside) is cleaned at start, keeping its date
+    old = os.path.join(d, "pre-v3-1700000000.db")
+    src = db.connect()
+    dst = sqlite3.connect(old)
+    src.backup(dst)
+    dst.close()
+    src.close()
+    assert b"SECRETKEY" in open(old, "rb").read() or "anthropic_api_key" in _backup_bytes_and_settings(old)[1]
+    os.utime(old, (1700000000, 1700000000))
+    db.scrub_old_backups()
+    raw, kv = _backup_bytes_and_settings(old)
+    assert "anthropic_api_key" not in kv and "tg_token" not in kv and b"SECRETKEY" not in raw and b"SECRETTOKEN" not in raw
+    assert int(os.path.getmtime(old)) == 1700000000
+    os.remove(old)
+    with open(os.path.join(d, "junk.db"), "wb") as f:  # a broken file is reported and left alone, never a crash
+        f.write(b"not a database" * 50)
+    db.scrub_old_backups()
+    os.remove(os.path.join(d, "junk.db"))
+    cl.post("/api/settings", json={"api_key": ""})
+    cl.post("/api/telegram", json={"token": "", "group": ""})
+
+
+def test_secrets_from_environment_or_docker_secret_files(cl, monkeypatch, tmp_path):
+    from app import creds, extract, tg
+    for n in ("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY_FILE", "TELEGRAM_BOT_TOKEN", "TELEGRAM_BOT_TOKEN_FILE"):
+        monkeypatch.delenv(n, raising=False)
+    assert creds.from_env("TELEGRAM_BOT_TOKEN") == "" and tg.bot_token() == ""
+    t = cl.get("/api/telegram").json()
+    assert not t["token_set"] and not t["env_token"]
+
+    f = tmp_path / "tg_token"
+    f.write_text("111:fromfile\n")
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN_FILE", str(f))
+    assert tg.bot_token() == "111:fromfile"  # trimmed
+    t = cl.get("/api/telegram").json()
+    assert t["env_token"] and not t["token_set"] and "fromfile" not in str(t)
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "222:fromenv")
+    assert tg.bot_token() == "222:fromenv"  # the variable itself wins over the file
+    monkeypatch.setattr(tg, "api", lambda t, m, p=None, timeout=15: {"username": "stockbot"})
+    cl.post("/api/telegram", json={"token": "333:saved"})
+    assert tg.bot_token() == "333:saved"  # one saved in Settings wins
+    cl.post("/api/telegram", json={"token": ""})
+    assert tg.bot_token() == "222:fromenv"  # removing it falls back to the container's
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY_FILE", str(tmp_path / "missing"))
+    assert creds.from_env("ANTHROPIC_API_KEY") == ""  # an unreadable file is reported once, never a crash
+    k = tmp_path / "key"
+    k.write_text("sk-ant-fromfile")
+    monkeypatch.setenv("ANTHROPIC_API_KEY_FILE", str(k))
+    assert cl.get("/api/settings").json()["env_key"]
+    seen = {}
+
+    class Fake:
+        def __init__(self, api_key, **kw):
+            seen["key"] = api_key
+            raise RuntimeError("stop here")
+    import anthropic
+    monkeypatch.setattr(anthropic, "Anthropic", Fake)
+    with pytest.raises(RuntimeError):
+        extract.extract(b"x", [], "")
+    assert seen["key"] == "sk-ant-fromfile"
+
+
+def test_data_files_are_readable_by_the_app_user_only(cl):
+    import stat
+
+    from app import db
+    p = os.path.join(db.DATA, "photos", "old.jpg")
+    with open(p, "wb") as f:
+        f.write(b"\xff\xd8x")
+    os.chmod(p, 0o644)
+    os.chmod(os.path.join(db.DATA, "photos"), 0o755)
+    db.lock_down()
+    mode = lambda x: stat.S_IMODE(os.stat(x).st_mode)
+    assert mode(p) == 0o600 and mode(os.path.join(db.DATA, "photos")) == 0o700 and mode(db.DATA) == 0o700
+    assert mode(db.DB) == 0o600
+    os.remove(p)
+    old = os.umask(0o077)  # what the app sets at start: new files are private too
+    try:
+        n = os.path.join(db.DATA, "new.txt")
+        open(n, "w").close()
+        assert mode(n) == 0o600
+        os.remove(n)
+    finally:
+        os.umask(old)
+
+
+def test_gate_tailnet_addresses_are_not_local_and_headers(cl):
+    from app import main
+    assert main._local_ip("192.168.1.20") and main._local_ip("172.17.0.1") and main._local_ip("::1") and main._local_ip("::ffff:10.0.0.5")
+    for h in ("100.101.102.103", "fd7a:115c:a1e0::1", "::ffff:100.100.1.1", "0.0.0.0", "::", "8.8.8.8", "", "nonsense"):
+        assert not main._local_ip(h), h
+    r = cl.get("/")
+    assert "frame-ancestors 'none'" in r.headers["content-security-policy"]
+    assert r.headers["referrer-policy"] == "no-referrer" and r.headers["cross-origin-resource-policy"] == "same-origin"
+
+
+def test_map_upload_must_be_a_picture(cl):
+    lid = cl.get("/api/state").json()["locs"][0]["id"]
+    r = cl.post("/api/location/%d/map" % lid, files={"file": ("map.jpg", b"<svg onload=alert(1)>", "image/jpeg")})
+    assert r.status_code == 422
+    r = cl.post("/api/location/%d/map" % lid, files={"file": ("map.jpg", b"\xff\xd8" + b"x" * (8 * 1024 * 1024), "image/jpeg")})
+    assert r.status_code == 413
+    r = cl.post("/api/location/%d/map" % lid, files={"file": ("map.jpg", b"\xff\xd8\xff\xe0 tiny", "image/jpeg")})
+    assert r.status_code == 200

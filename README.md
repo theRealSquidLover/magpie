@@ -133,15 +133,14 @@ The phone loads the new version the next time it has a connection. If the app is
 1. Stop the container and wait until it has really stopped.
 2. Move `stock.db-wal` and `stock.db-shm` out of the data folder, if they're there. They hold the newest changes to the database you're replacing. If you leave them, they would be replayed into the restored copy and corrupt it.
 3. Copy the backup over `stock.db`, keeping the old one somewhere safe.
-4. Start the container.
+4. Start the container. Backups leave out the API key and bot token, so paste them into Settings again (not needed if they come from the container, see Backups below).
 
 The same steps restore a `daily-*.db` backup.
 
 ## Backups
-
 The data folder holds `stock.db`, `photos/`, `maps/` and `backups/`. The built-in backups are on the same disk and cover only `stock.db`, so include the whole folder in a backup to another disk or machine, and test a restore once.
 
-The database, and therefore its backups, also contains the saved API key and bot token. Treat those copies like passwords.
+The saved API key and bot token are left out of every backup. They can also be given to the container instead of Settings: `ANTHROPIC_API_KEY` / `TELEGRAM_BOT_TOKEN`, or files named by `ANTHROPIC_API_KEY_FILE` / `TELEGRAM_BOT_TOKEN_FILE` (Docker secrets). A value saved in Settings wins. Files in the data folder are readable by the container's user only (600), so open them as root.
 
 ## Development
 

@@ -4,6 +4,8 @@ import json
 import math
 import os
 
+from . import creds
+
 PROMPT = (
     "This image is either one carton label or a packing list for a textiles warehouse. "
     "Extract the items using the record_items tool. Rules: for a carton label return exactly one item, "
@@ -43,7 +45,7 @@ TOOL = {
 
 
 def extract(img: bytes, known: list, key: str = "") -> dict:
-    key = key or os.environ.get("ANTHROPIC_API_KEY")
+    key = key or creds.from_env("ANTHROPIC_API_KEY")
     if not key:
         raise RuntimeError("No API key saved. Add one under Settings.")
     import anthropic

@@ -1,7 +1,7 @@
 """Telegram bot: answers stock questions and posts the "refill picking" list to a group.
 
 Outbound only (long polling to api.telegram.org); nothing here listens on the internet.
-The bot token lives in the settings table and is never sent back to any client.
+The bot token is saved in Settings (settings table) or given as TELEGRAM_BOT_TOKEN(_FILE); it is never sent back to any client.
 Read-only: the bot can look stock up but never changes the ledger.
 """
 import datetime
@@ -15,7 +15,7 @@ import time
 import urllib.request
 from zoneinfo import ZoneInfo
 
-from . import db
+from . import creds, db
 
 BASE = os.environ.get("TELEGRAM_API_BASE", "https://api.telegram.org")
 STATE = {"bot": "", "err": "", "ok": False, "post_err": ""}  # post_err: last problem posting to the group (kept until a post succeeds)
@@ -29,6 +29,11 @@ def setting(k, default=""):
     r = c.execute("SELECT v FROM settings WHERE k=?", (k,)).fetchone()
     c.close()
     return r[0] if r else default
+
+
+def bot_token():
+    """The bot token: the one saved in Settings, else TELEGRAM_BOT_TOKEN / TELEGRAM_BOT_TOKEN_FILE from the container."""
+    return setting("tg_token") or creds.from_env("TELEGRAM_BOT_TOKEN")
 
 
 def put(k, v):
@@ -695,7 +700,7 @@ def send_document(token, chat, name, data, caption=""):
 
 def post_refill(token=None):
     """Post the refill list to the group. Returns number of lines posted (0 = nothing needed, nothing sent)."""
-    token = token or setting("tg_token")
+    token = token or bot_token()
     group = setting("tg_group").strip()
     if not token or not group:
         raise RuntimeError("Set the bot token and the group chat ID first")
@@ -730,7 +735,7 @@ def post_refill(token=None):
 
 def maybe_digest(now=None):
     h = setting("tg_hour").strip()
-    if not re.fullmatch(r"[0-9]{1,2}", h) or not setting("tg_group").strip() or not setting("tg_token"):
+    if not re.fullmatch(r"[0-9]{1,2}", h) or not setting("tg_group").strip() or not bot_token():
         return
     now = now or now_local()
     today = now.strftime("%Y-%m-%d")
@@ -746,7 +751,7 @@ def maybe_digest(now=None):
 def _loop():
     offset, last = 0, None
     while not _stop.is_set():
-        token = setting("tg_token")
+        token = bot_token()
         if token != last:  # a different bot has its own update numbers; an old offset would silently drop its messages
             offset, last = 0, token
         if not token:

@@ -15,7 +15,7 @@ from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import db, tg
+from . import creds, db, tg
 
 REQUIRE_TS = os.environ.get("REQUIRE_TAILSCALE_HEADER", "0") == "1"
 # ALLOWED_LOGINS: comma list of Tailscale logins allowed in (e.g. "yourname@github"). Empty = anyone on the tailnet.
@@ -26,10 +26,15 @@ ALLOWED_HOSTS = {x.strip().lower() for x in os.environ.get("ALLOWED_HOSTS", "").
 PHOTOS = os.path.join(db.DATA, "photos")
 MAPS = os.path.join(db.DATA, "maps")
 KINDS = {"receive", "sale", "adjust", "transfer", "move"}
+IMAGE_MAGIC = (b"\xff\xd8", b"\x89PNG", b"GIF8", b"RIFF")  # first bytes of JPEG, PNG, GIF, WebP
 VERSION = os.environ.get("APP_VERSION", "dev")  # git commit of the image, stamped at build time
 
 
 async def _daily_backup():
+    try:
+        await asyncio.to_thread(db.scrub_old_backups)  # copies made by older versions still hold the key and token
+    except Exception:
+        pass
     while True:  # checked every hour; makes today's copy once (backup_daily records success or the error)
         try:
             await asyncio.to_thread(db.backup_daily)
@@ -40,8 +45,10 @@ async def _daily_backup():
 
 @asynccontextmanager
 async def lifespan(app):
+    os.umask(0o077)  # every file the app writes (database, backups, photos, maps) is readable by its own user only
     db.migrate()
     os.makedirs(PHOTOS, exist_ok=True)
+    db.lock_down()  # and the same for files written before this version
     task = asyncio.create_task(_daily_backup())
     tg.start()
     yield
@@ -52,10 +59,18 @@ async def lifespan(app):
 app = FastAPI(title="Magpie", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 
 
+# Tailscale's own addresses are "private" to Python but are other devices on the tailnet, not the local network.
+TAILNET = (ipaddress.ip_network("100.64.0.0/10"), ipaddress.ip_network("fd7a:115c:a1e0::/48"))
+
+
 def _local_ip(h):
     try:
         a = ipaddress.ip_address(h or "")
     except ValueError:
+        return False
+    if a.version == 6 and a.ipv4_mapped:  # ::ffff:10.0.0.5 is the IPv4 address 10.0.0.5
+        a = a.ipv4_mapped
+    if a.is_unspecified or any(a in n for n in TAILNET if n.version == a.version):
         return False
     return a.is_private or a.is_loopback or a.is_link_local
 
@@ -102,6 +117,11 @@ async def gate(request: Request, call_next):
     resp = await call_next(request)
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")  # never guess a file's type (a photo can't run as a script)
     resp.headers.setdefault("X-Frame-Options", "DENY")  # the app can't be framed by another page (click-jacking)
+    # No script rules (the page's code is inline): only what can't break the app. No framing, no <base>/<object>
+    # tricks, and forms can only post back here.
+    resp.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'")
+    resp.headers.setdefault("Referrer-Policy", "no-referrer")  # links out never tell the other site this server's address
+    resp.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")  # other sites can't load photos, maps or PDFs from here
     return resp
 
 
@@ -359,7 +379,7 @@ def _photo_save(c, name, o):
         raise ValueError("photo data is damaged (not base64)")
     if len(raw) > 8_000_000:
         raise ValueError("photo too large")
-    if not raw.startswith((b"\xff\xd8", b"\x89PNG", b"GIF8", b"RIFF")):
+    if not raw.startswith(IMAGE_MAGIC):
         # a phone that ran out of memory hands over an empty picture ("data:,"): refuse it rather than save a blank file
         raise ValueError("photo is empty or not a picture")
     col = _text(o.get("colour"), "colour").strip()
@@ -1071,11 +1091,13 @@ async def sections_save(lid: int, request: Request):
 @app.post("/api/location/{lid}/map")
 def map_upload(lid: int, file: UploadFile = File(...)):
     _id_ok(lid, "Unknown warehouse")
-    data = file.file.read()
+    data = file.file.read(8 * 1024 * 1024 + 1)  # never more than the limit into memory
     if not data:
         raise HTTPException(422, "Empty picture")
     if len(data) > 8 * 1024 * 1024:
         raise HTTPException(413, "Picture too large (max 8 MB)")
+    if not data.startswith(IMAGE_MAGIC):
+        raise HTTPException(422, "That file isn't a picture")
     os.makedirs(MAPS, exist_ok=True)
     name = "loc%d-%d.jpg" % (lid, int(time.time() * 1000))
     c = db.connect()
@@ -1142,7 +1164,7 @@ def get_setting(k, default=""):
 def settings_get():
     key = get_setting("anthropic_api_key")  # the key itself is never sent back to any client
     return {"key_set": bool(key), "key_hint": ("..." + key[-4:]) if key else "",
-            "env_key": bool(os.environ.get("ANTHROPIC_API_KEY")), "backup": db.backup_status()}
+            "env_key": bool(creds.from_env("ANTHROPIC_API_KEY")), "backup": db.backup_status()}
 
 
 @app.post("/api/settings")
@@ -1163,7 +1185,8 @@ async def settings_set(request: Request):
 
 def _tg_view():
     t = tg.setting("tg_token")  # the token itself is never sent back to any client
-    return {"token_set": bool(t), "token_hint": ("..." + t[-4:]) if t else "", "users": tg.setting("tg_users"),
+    return {"token_set": bool(t), "token_hint": ("..." + t[-4:]) if t else "", "env_token": bool(creds.from_env("TELEGRAM_BOT_TOKEN")),
+            "users": tg.setting("tg_users"),
             "group": tg.setting("tg_group"), "hour": tg.setting("tg_hour"), "bot": tg.STATE["bot"],
             "running": tg.STATE["ok"], "err": tg.STATE["err"], "post_err": tg.STATE["post_err"]}
 
@@ -1231,7 +1254,7 @@ def photo(name: str):
 def extract_ep(file: UploadFile = File(...)):
     from . import extract
 
-    data = file.file.read()
+    data = file.file.read(8_000_001)  # never more than the limit into memory
     if len(data) > 8_000_000:
         raise HTTPException(413, "Image too large")
     c = db.connect()
