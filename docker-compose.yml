@@ -1,0 +1,25 @@
+# Works with plain `docker compose up -d` or Unraid's Compose Manager ("Compose Up").
+# For a fork, change the image owner (lowercase).
+services:
+  magpie:
+    image: ghcr.io/therealsquidlover/magpie:latest
+    container_name: magpie
+    restart: unless-stopped
+    # Bound to localhost only: not reachable from your LAN or the internet.
+    # Phones get in through `tailscale serve --bg 18437` (see README).
+    ports:
+      - "127.0.0.1:18437:8080"
+    volumes:
+      # Where the database, photos and backups live. On Unraid, for example /mnt/user/appdata/magpie
+      - ./data:/data
+    environment:
+      # Your time zone, used for dates in PDFs, the Telegram bot and the daily backup.
+      TZ: "UTC"
+      # Optional. The Claude API key can instead be entered in the app (Settings), which stores it in /data.
+      # ANTHROPIC_API_KEY: ""
+      ANTHROPIC_MODEL: "claude-haiku-5-5"
+      # Set to "1" once the app header shows your Tailscale login, to reject requests without it.
+      REQUIRE_TAILSCALE_HEADER: "0"
+      # Only these Tailscale logins get in (comma-separated, e.g. "yourname@github").
+      # Devices on the server's own network always can. Empty = everyone on your tailnet.
+      ALLOWED_LOGINS: ""

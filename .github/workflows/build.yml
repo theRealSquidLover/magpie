@@ -1,0 +1,69 @@
+name: build-image
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:  # run the tests on every PR; nothing is built or published from a PR
+    branches: [main]
+  workflow_dispatch:
+permissions:  # read-only by default; only the build job below (never run for a PR) may publish images
+  contents: read
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:  # no image is published unless the tests pass
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q tests
+      - run: python tests/check_js.py  # node --check on the app's inline script (node ships with ubuntu-latest)
+  e2e:  # the app in a real (headless) browser: smoke, offline, photos, sync safety
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt "playwright==1.63.0" requests
+      - run: python -m playwright install --with-deps chromium
+      - run: python tests/e2e_smoke.py
+      - run: python tests/e2e_offline.py
+      - run: python tests/e2e_photos.py
+      - run: python tests/e2e_sync.py
+  build:
+    needs: [test, e2e]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write  # push the image to ghcr.io
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}  # lower-cased by metadata-action: ghcr.io/<owner>/<repo>
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha
+            type=ref,event=tag
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: APP_VERSION=${{ github.sha }}
+          platforms: linux/amd64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

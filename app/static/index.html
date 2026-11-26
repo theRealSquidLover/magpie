@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Magpie</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Magpie"><meta name="theme-color" content="#1f6feb">
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--mut:#666;--card:#f4f4f2;--bd:#d8d8d4;--ac:#1f6feb;--bad:#c62828;--ok:#2e7d32}
+@media (prefers-color-scheme:dark){:root{--bg:#161616;--fg:#eee;--mut:#9a9a9a;--card:#222;--bd:#3a3a3a;--ac:#5b9dff;--bad:#ef6b6b;--ok:#6fcf74}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.4 system-ui,-apple-system,sans-serif;padding:12px;padding-top:max(12px,env(safe-area-inset-top));padding-bottom:calc(76px + env(safe-area-inset-bottom));max-width:640px;margin:auto}
+h1{font-size:18px;margin:4px 0 10px}#ttl{font-size:20px}
+nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px}
+nav button{flex:none;padding:8px 12px;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:8px;font-size:15px}
+nav button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+label{display:block;font-size:13px;color:var(--mut);margin:10px 0 3px}
+input,select{width:100%;padding:11px;font-size:16px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg)}
+.btn{width:100%;margin-top:14px;padding:13px;font-size:16px;border:0;border-radius:8px;background:var(--ac);color:#fff}
+.sm{padding:8px 10px;font-size:14px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg)}
+#mbt .msg{margin:0 0 10px}.msg{margin-top:10px;padding:10px;border-radius:8px;font-size:14px}.msg.toast{font-size:16px;font-weight:600;padding:14px 16px}.msg.toast.ok{background:#1e6b2a;color:#fff}.msg.toast.ok::before{content:"✓ "}.err{background:var(--bad);color:#fff}.ok{background:var(--ok);color:#fff}.warn{background:#e0a800;color:#000}
+.row{padding:10px;border:1px solid var(--bd);border-radius:8px;margin-top:8px;background:var(--card);display:flex;gap:10px;align-items:center}
+.row b{display:block}.m{color:var(--mut);font-size:13px;display:block}.grow{flex:1;min-width:0}select.lm{width:auto;max-width:130px;flex:none;padding:9px 6px}
+.sub{margin:6px 0 0 18px;padding:9px 10px;border:1px solid var(--bd);border-radius:8px;display:flex;justify-content:space-between;align-items:center;background:var(--card)}
+.sz{margin:4px 0 0 36px;padding:6px 10px;border-left:3px solid var(--bd)}
+.th{width:56px;height:56px;object-fit:cover;border-radius:6px;flex:none}
+.ph{width:56px;height:56px;border:1px dashed var(--bd);border-radius:6px;flex:none;background:none;color:var(--mut);font-size:12px}
+.opt{padding:10px;border:1px solid var(--bd);border-top:0;background:var(--card)}
+#pv{display:none;max-width:100%;max-height:160px;margin-top:8px;border-radius:8px}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;z-index:9}#ov img{max-width:96%;max-height:92%}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bad{border-color:var(--bad)!important;outline:2px solid var(--bad)}.chk{outline:2px solid #e0a800}
+.cath{cursor:pointer;user-select:none;margin:14px 0 2px;padding:6px 0;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mut)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.chip{padding:6px 12px;border:1px solid var(--bd);border-radius:16px;background:var(--card);color:var(--fg);font-size:14px}.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+.spin{flex:none;width:16px;height:16px;border:3px solid var(--bd);border-top-color:var(--ac);border-radius:50%;animation:sp .8s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
+.bellb{position:relative;flex:none;width:40px;height:40px;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0}.bellb.on{color:var(--bad);border-color:var(--bad)}.bdg{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;line-height:18px;text-align:center;display:none}
+#bnav{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom)}
+#bnav>div{display:flex;max-width:640px;margin:auto}
+#bnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 7px;background:none;border:0;border-radius:0;color:var(--mut);font-size:11px;position:relative;margin:0}
+#bnav button.on{color:var(--ac)}#bnav button.alert svg{color:var(--bad)}
+#bnav .bdg{top:3px;right:calc(50% - 24px)}
+.cardx{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin:0 0 16px}
+.cardx .ch{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.cardx h3{margin:0;font-size:18px}
+.pill{flex:none;font-size:12px;padding:3px 10px;border-radius:12px;border:1px solid var(--bd);color:var(--mut)}.pill.p-ok{color:var(--ok);border-color:var(--ok)}.pill.p-bad{color:var(--bad);border-color:var(--bad)}
+.sh{margin:18px 0 0;padding-top:12px;border-top:1px solid var(--bd);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}.sh+label{margin-top:6px}
+.btnrow{display:flex;gap:8px}.btnrow .btn{margin-top:14px;flex:1;width:auto}
+.btn.sec{background:var(--bg);color:var(--fg);border:1px solid var(--bd)}.btn.dng{background:none;color:var(--bad);border:1px solid var(--bad)}
+.how{margin-top:14px}.how summary{color:var(--mut);font-size:14px;padding:6px 0}
+.f-r,.f-p,.f-o{outline:2px solid;outline-offset:-2px;border-radius:8px}.f-r{outline-color:#e5484d}.f-p{outline-color:#a855f7}.f-o{outline-color:#ff8c1a}
+.lg{display:inline-block;width:12px;height:12px;border:2px solid;border-radius:4px;vertical-align:-2px;margin:0 4px 0 10px}.lg:first-child{margin-left:0}.lg.lr{border-color:#e5484d}.lg.lp{border-color:#a855f7}.lg.lo{border-color:#ff8c1a}
+.inl{display:flex;gap:8px;align-items:center}.inl input,.inl select{flex:1;min-width:0}.ic{flex:none;width:50px;height:46px;font-size:22px;padding:0;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--fg)}
+details.more{margin-top:12px;border-top:1px solid var(--bd)}details.more summary{padding:12px 0;color:var(--mut);font-size:15px;cursor:pointer}details.more[open] summary{color:var(--fg)}
+.lst{max-height:340px;overflow-y:auto;margin-top:6px;border:1px solid var(--bd);border-radius:8px;background:var(--card)}.lh{position:sticky;top:0;padding:6px 10px;font-size:13px;font-weight:700;background:var(--bg);color:var(--mut);border-bottom:1px solid var(--bd)}.ln{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--bd);border-left:4px solid transparent;cursor:pointer}.ln.on{background:var(--bg);border-left-color:var(--ac);outline:2px solid var(--ac);outline-offset:-2px}.ln .m{font-size:13px}.qn{font-size:22px;font-weight:700;text-align:right;line-height:1}.qn small{display:block;font-size:11px;font-weight:400;color:var(--mut);margin-top:2px}
+.mapb{position:relative;border:1px solid var(--bd);border-radius:8px;overflow:hidden;background:var(--card);margin:6px 0 12px;-webkit-user-select:none;user-select:none}.mapb img{width:100%;display:block;pointer-events:none}.mapb.drw{touch-action:none;cursor:crosshair;outline:2px dashed var(--ac)}.zone{position:absolute;box-sizing:border-box;border:2px solid var(--ac);background:rgba(90,150,255,.14);display:flex;align-items:center;justify-content:center;text-align:center;font-size:14px;color:#fff;line-height:1.25}.zone span{background:rgba(0,0,0,.55);padding:2px 6px;border-radius:6px}.zone.hot{background:rgba(255,170,0,.40);border-color:#ffaa00}.zone.home{border-style:dashed}.zone.pk{cursor:pointer}.zone.adj{border-color:#ffaa00;background:rgba(255,170,0,.28);z-index:2;cursor:move;touch-action:none}.zone.adj span{pointer-events:none}.hd{position:absolute;background:#ffaa00;border:2px solid #fff;border-radius:6px;box-sizing:border-box;touch-action:none;z-index:3}.hd.n,.hd.s{width:44px;height:18px;left:50%;margin-left:-22px}.hd.n{top:-10px}.hd.s{bottom:-10px}.hd.w,.hd.e{width:18px;height:44px;top:50%;margin-top:-22px}.hd.w{left:-10px}.hd.e{right:-10px}.mapb.adjm{touch-action:none;outline:2px dashed #ffaa00;overflow:visible}.mapl{color:var(--ac);text-decoration:underline;cursor:pointer;margin-left:6px;white-space:nowrap}#sed .gr input{width:auto;flex:1;min-width:0;text-align:left}#sed .gr .sm{flex:none}.sg{max-height:200px;overflow:auto;border-top:1px solid var(--bd)}.opt.add{color:var(--ok);font-weight:600}
+#gov,#mov,#sed{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column}.ghd{display:flex;justify-content:space-between;align-items:center;padding:calc(env(safe-area-inset-top) + 12px) 14px 10px;border-bottom:1px solid var(--bd)}.gbd{flex:1;overflow:auto;padding:12px 14px}.gft{padding:10px 14px calc(env(safe-area-inset-bottom) + 12px);border-top:1px solid var(--bd)}.gft .btn{width:100%}.gft .btn:disabled{opacity:.45}.gr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--bd)}.gr input{width:96px;text-align:right}#gov .gr>span:first-child{flex:1;min-width:0;overflow-wrap:anywhere;display:flex;align-items:center}#gov .gr>span:first-child>img,#gov .gr>span:first-child>.ph{flex:none}#gov .gr .gq{width:118px}#gov .gslot{margin-left:-4px}
+.dc{opacity:.6}
+.bml{cursor:pointer;display:flex;align-items:center;gap:8px;padding:3px 0}.bml input{width:auto;margin:0;pointer-events:none}.sz.bms{border-left-color:var(--ac);outline:2px solid var(--ac);outline-offset:-2px;border-radius:0 8px 8px 0}
+#bmbar{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 58px);z-index:41;background:var(--card);border-top:1px solid var(--bd);box-shadow:0 -4px 12px rgba(0,0,0,.25)}#bmbar>div{display:flex;gap:8px;align-items:center;max-width:640px;margin:auto;padding:10px 14px}#bmbar .grow{flex:1;font-size:14px}#bmbar .btn{width:auto;margin:0;padding:10px 14px}
+/* keyboard + scroll fixes: html.kb = on-screen keyboard is up; html.lock = a full-screen panel is open (page behind can't scroll) */
+html{-webkit-text-size-adjust:100%}
+input,select,textarea{scroll-margin:90px 0 140px}
+.lst{max-height:min(340px,calc(var(--vvh,100svh)*.45))}
+#sel.picked .ln:not(.on),#sel.picked .lh{display:none}#sel.picked{max-height:none}.pnm{display:none}#sel.picked .pnm{display:inline}.selchg{display:block;width:100%;padding:10px;border:0;border-top:1px solid var(--bd);background:none;color:var(--ac);font-size:15px;text-align:left}
+html.kb #bnav,html.kb #bmbar{display:none}html.kb body{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+html.lock body{position:fixed;left:0;right:0;overflow:hidden}
+#gov,#mov,#sed,#phov{bottom:auto!important;top:var(--vvt,0)!important;height:var(--vvh,100dvh)!important}.gbd,#pdfpg{overscroll-behavior:contain}
+html.kb .gft{padding-bottom:10px}
+/* the top tab row stays put while the page scrolls (owner request 2026-11-26). .stuck paints the strip under the status bar so rows don't show through;
+   while typing it goes back to scrolling, so it doesn't take space above the keyboard */
+#nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--bg);margin:0 -12px;padding:4px 12px 8px}
+#nav.stuck{box-shadow:0 calc(-1*env(safe-area-inset-top,0px)) 0 var(--bg),0 1px 0 var(--bd)}
+html.kb #nav{position:static;box-shadow:none}
+</style></head><body>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px"><h1 style="margin:4px 0"><span id="ttl">Magpie</span> <span id="hdr" class="m" style="display:inline;font-weight:400"></span></h1></div><div id="pdfov" style="display:none;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:16px"></div><div id="verbar"></div><div id="phbar"></div>
+<nav id="nav"></nav><div id="scanbar"></div><input type="file" id="fscan" accept="image/*" style="position:fixed;left:-999px;top:0;width:1px;height:1px;opacity:0"><div id="main"></div><div id="ovw"></div><div id="bnav"></div>
+<script>
+var TOP=["Stock","Receive","Sale/Adjust","Transfer","Report","Log"],LASTTOP="Stock";
+function sec(){return TOP.indexOf(tab)>-1?"stock":tab=="Notifications"?"notif":tab=="Warehouses"?"wh":"set"}
+function goSec(k){go(k=="stock"?(sec()=="stock"?"Stock":LASTTOP):{notif:"Notifications",wh:"Warehouses",set:"Settings"}[k])}
+var ICONS={stock:'<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',notif:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',wh:'<path d="M3 21V9l9-5 9 5v12"/><path d="M9 21v-7h6v7"/>',set:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'};
+var SECN={stock:"Stock",notif:"Alerts",wh:"Warehouses",set:"Settings"};
+function bnav(){var a=sec();$("bnav").innerHTML="<div>"+["stock","notif","wh","set"].map(function(k){return'<button id="bn-'+k+'" class="'+(k==a?"on":"")+'" onclick="goSec(\''+k+'\')" aria-label="'+SECN[k]+'"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+ICONS[k]+"</svg><span>"+SECN[k]+"</span>"+(k=="notif"?'<span id="bb" class="bdg"></span>':"")+"</button>"}).join("")+"</div>"}
+var SV={locs:[],prods:[],vars:[],mv:[],user:""},S=SV,PEND=[],REJ=[],ONLINE=true,TMP=-1,SY=false;
+/* SENT: ops the server accepted that no fetched snapshot contains yet. They stay applied on top of SV until a /api/state
+   fetched after they were accepted arrives, so a failed state download can never make a saved sale vanish from the phone. */
+var SENT=[],SVFRESH=false;
+var LASTLOC=(function(){try{return+localStorage.getItem("lastloc")||0}catch(e){return 0}})();function setLoc(v){LASTLOC=+v;try{localStorage.setItem("lastloc",v)}catch(e){}}
+var tab="Stock",msg=null,PH=null,Z=null,PSEL=null,O={},Q="",RN=null,ED=null,IMP=[],X={pid:null};
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function uid(){return(window.crypto&&crypto.randomUUID)?crypto.randomUUID():"u"+Date.now()+Math.random().toString(16).slice(2)}
+function uniq(a){return a.filter(function(x,i){return a.indexOf(x)==i})}
+function nat(a,b){return String(a).localeCompare(String(b),undefined,{numeric:true})}
+/* sizes: numbers/measurements by number, then XXS..5XL (any spelling), then Single..Super King, then the rest A-Z; blank last (same rule as the server) */
+var BED=["cot","crib","single","singlexl","twin","twinxl","smalldouble","threequarter","double","full","queen","king","superking","emperor"],SZW={"small":"s","medium":"m","med":"m","large":"l","extra small":"xs","extra large":"xl"};
+function szKey(s){s=String(s||"").trim();if(!s)return[4,0,0,""];var t=s.toLowerCase().replace(/(\d)\.(?=\d)/g,"$1\u0001").replace(/[\s\-_.]+/g," ").replace(/\u0001/g,".").trim(),g=(SZW[t]||t).replace(/ /g,""),m=g.match(/^(\d*)(x*)([sml])$/),n;
+ if(m&&!(m[1]&&m[2]!="x")){n=m[1]?+m[1]:m[2].length;if(m[3]!="m"||n==0)return[1,m[3]=="m"?1:m[3]=="l"?2+n:-n,0,t]}
+ var bi=BED.indexOf(t.replace(/ /g,""));if(bi>-1)return[2,bi,0,t];
+ m=t.match(/^(\d+(?:\.\d+)?)[^\dx×*]*(?:[x×*]\s*(\d+(?:\.\d+)?))?/);if(m)return[0,parseFloat(m[1]),parseFloat(m[2]||0),t];return[3,0,0,t]}
+function szCmp(a,b){var x=szKey(a),y=szKey(b);for(var i=0;i<3;i++)if(x[i]!=y[i])return x[i]-y[i];return nat(x[3],y[3])}
+function dimCmp(d){return d=="size"?szCmp:nat}
+function sum(a){return a.reduce(function(t,x){return t+x.q},0)}
+function fmt(ts){try{return new Date(ts).toLocaleString([],{dateStyle:"short",timeStyle:"short"})}catch(e){return ts}}
+/* ---------- data helpers ---------- */
+function P(id){return S.prods.find(function(x){return x.id==id})}
+function V(id){return S.vars.find(function(x){return x.id==id})}
+function LN(id){var l=S.locs.find(function(x){return x.id==id});return l?l.name:"?"}
+function act(){return S.locs.filter(function(l){return l.on})}
+/* a blank colour/size shows as "n/a" when the item has other lines that do have one (owner rule) */
+function vdims(){if(S._dm&&S._dmn===S.vars.length)return S._dm;var d={};S.vars.forEach(function(v){var x=d[v.prod]=d[v.prod]||{c:0,s:0};if(v.colour)x.c=1;if(v.size)x.s=1});S._dm=d;S._dmn=S.vars.length;return d}
+function vl(id){var v=V(id),p=P(v.prod),d=vdims()[v.prod]||{};return p.name+(v.colour?" · "+v.colour:d.c?" · n/a":"")+(v.size?" · "+v.size:d.s?" · n/a":"")}
+function findV(pid,c,s){c=(c||"").toLowerCase();s=(s||"").toLowerCase();return S.vars.find(function(v){return v.prod==pid&&(v.colour||"").toLowerCase()==c&&(v.size||"").toLowerCase()==s})}
+function rows(){var m={};S.mv.forEach(function(x){var k=x.v+"|"+x.lot+"|"+x.loc;m[k]=m[k]||{v:x.v,lot:x.lot,loc:x.loc,q:0};m[k].q+=x.qty});return Object.keys(m).map(function(k){return m[k]}).filter(function(r){return r.q!==0})}
+function cur(v,l,c){return S.mv.filter(function(x){return x.v==v&&x.lot==l&&x.loc==c}).reduce(function(a,x){return a+x.qty},0)}
+/* ---------- offline outbox ---------- */
+/* offline storage: the outbox and the last server snapshot live in IndexedDB (room for photos); localStorage keeps a
+   second copy of the outbox when it fits. Nothing is ever dropped silently: if neither can save, the header says so. */
+var PFULL=false,IDB=null,IDBOK=true;
+function idb(){if(IDB)return IDB;IDB=new Promise(function(res,rej){try{var q=indexedDB.open("stockapp",1);q.onupgradeneeded=function(){q.result.createObjectStore("kv")};q.onsuccess=function(){res(q.result)};q.onerror=function(){rej(q.error)}}catch(e){rej(e)}});return IDB}
+function idbPut(k,v){return idb().then(function(d){return new Promise(function(res,rej){var t=d.transaction("kv","readwrite");t.objectStore("kv").put(v,k);t.oncomplete=function(){res()};t.onerror=t.onabort=function(){rej(t.error)}})})}
+function idbGet(k){return idb().then(function(d){return new Promise(function(res,rej){var q=d.transaction("kv").objectStore("kv").get(k);q.onsuccess=function(){res(q.result)};q.onerror=function(){rej(q.error)}})})}
+function rejSlim(){return REJ.map(function(x){return{op:Object.assign({},x.op,{data:x.op.data?"(photo)":undefined}),msg:x.msg}})}
+/* Until loadIdb() has merged what IndexedDB holds, nothing is written there: an op recorded in the first moments after a
+   cold start would otherwise overwrite a stored outbox that localStorage had no room for. persist(true) also saves SV. */
+var IDBREADY=false,IDBDIRTY=false,SNAPDIRTY=false;
+function persist(snap){var box={PEND:PEND,REJ:REJ,SENT:SENT},ls=!PEND.some(function(o){return o.kind=="photo"});if(snap)SNAPDIRTY=true;
+ if(ls)try{localStorage.setItem("pend",JSON.stringify({PEND:PEND,REJ:rejSlim(),SENT:SENT}))}catch(e){ls=false}
+ if(!ls)try{localStorage.removeItem("pend")}catch(e2){}
+ try{localStorage.removeItem("snap")}catch(e){}
+ if(!IDBREADY){IDBDIRTY=true;return}
+ idbPut("pend",box).then(function(){IDBOK=true;if(PFULL){PFULL=false;hdr()}}).catch(function(){IDBOK=false;PFULL=!ls&&PEND.length>0;hdr()});
+ if(SNAPDIRTY){SNAPDIRTY=false;idbPut("snap",SV).catch(function(){})}}
+function loadLocal(){try{var b=JSON.parse(localStorage.getItem("pend")||"{}");PEND=b.PEND||[];REJ=b.REJ||[];SENT=b.SENT||[];var a=localStorage.getItem("snap");if(a&&okState(JSON.parse(a)))SV=JSON.parse(a)}catch(e){}rebuild()}
+function okState(s){return!!(s&&typeof s=="object"&&Array.isArray(s.mv)&&Array.isArray(s.prods)&&Array.isArray(s.vars)&&Array.isArray(s.locs))}
+/* after start-up: take anything IndexedDB holds that localStorage didn't (outbox entries, a newer snapshot) */
+function loadIdb(){return Promise.all([idbGet("pend").catch(function(){return null}),idbGet("snap").catch(function(){return null})]).then(function(r){var b=r[0],sn=r[1],have={},add=0;
+ PEND.forEach(function(o){have[o.uuid]=1});SENT.forEach(function(o){have[o.uuid]=1});if(b&&b.PEND)b.PEND.forEach(function(o){if(!have[o.uuid]){PEND.push(o);have[o.uuid]=1;add++}});if(b&&b.SENT)b.SENT.forEach(function(o){if(!have[o.uuid]){SENT.push(o);have[o.uuid]=1;add++}});if(b&&b.REJ){if(!REJ.length)REJ=b.REJ;else REJ=REJ.map(function(x){return b.REJ.find(function(y){return y.op.uuid==x.op.uuid})||x})}
+ if(okState(sn)&&(!SV.mv||sn.mv.length>=SV.mv.length))SV=sn;idbReady(add);rebuild();soft();return add})}
+function idbReady(add){if(IDBREADY)return;IDBREADY=true;if(add||IDBDIRTY){IDBDIRTY=false;persist(true)}}
+function rebuild(){S=JSON.parse(JSON.stringify(SV));TMP=-1;SENT.forEach(applyLocal);PEND.forEach(applyLocal)}
+function applyLocal(o){
+ if(o.kind=="reverse"){revLocal(o);return}
+ var pr=S.prods.find(function(x){return x.name.toLowerCase()==(o.product||"").toLowerCase()});
+ if(o.kind=="photo"){if(pr&&o.colour){S.cph=(S.cph||[]).filter(function(x){return!(x[0]==pr.id&&x[1].toLowerCase()==o.colour.toLowerCase())});S.cph.push([pr.id,o.colour,o.data])}else if(pr)pr.photo=o.data;return}
+ if(!pr){pr={id:TMP--,name:o.product,alias:o.alias||"",ppc:0,pack:o.pack||"",photo:null,pend:o.kind=="prepare"};S.prods.push(pr)}if(o.kind=="receive"){pr.pend=false;if(o.alias)pr.alias=o.alias;if(o.pack)pr.pack=o.pack}
+ var v=findV(pr.id,o.colour,o.size);if(!v){v={id:TMP--,prod:pr.id,colour:o.colour||"",size:o.size||""};S.vars.push(v)}if((o.kind=="receive"||o.kind=="prepare")&&o.pack)v.pack=o.pack;if(o.kind=="prepare")return;
+ function m(l,q,t,x){S.mv.push(Object.assign({v:v.id,lot:o.lot||"",loc:l,qty:q,type:t,ts:o.ts,note:o.note||"",pend:1,user:"",flag:null,op:o.uuid},x||{}))}
+ if(o.kind=="receive"){m(o.loc,o.qty,"receive",{s:o.section||0,a:o.ts});if(o.section&&pr.id>0){S.homes=S.homes||[];if(!S.homes.some(function(h){return h[0]==pr.id&&h[1]==o.loc}))S.homes.push([pr.id,o.loc,o.section])}}if(o.kind=="sale")m(o.loc,-o.qty,"sale");if(o.kind=="adjust"){if(o.qty>0){var op_=pilesOf(v.id,o.lot||"",o.loc).filter(function(x){return x.q>0})[0];m(o.loc,o.qty,"adjust",op_?{s:op_.s,a:op_.a}:{s:homeSec(pr.id,o.loc)})}else m(o.loc,o.qty,"adjust")}
+ if(o.kind=="transfer"){m(o.loc,-o.qty,"transfer");m(o.to,o.qty,"transfer",{s:homeSec(pr.id,o.to)})}
+ if(o.kind=="move"){var fs=o.from_section||0,n=o.qty;pilesOf(v.id,o.lot||"",o.loc).filter(function(x){return x.s==fs&&x.q>0}).forEach(function(x){if(!n)return;var t=Math.min(n,x.q);m(o.loc,-t,"move",{s:fs,a:x.a,tid:o.uuid});m(o.loc,t,"move",{s:o.section,a:x.a,tid:o.uuid});n-=t});
+  if(o.home&&pr.id>0){S.homes=(S.homes||[]).filter(function(h){return!(h[0]==pr.id&&h[1]==o.loc)});S.homes.push([pr.id,o.loc,o.section])}}}
+var SYAGAIN=false;
+function queue(o){o.uuid=uid();o.ts=new Date().toISOString();PEND.push(o);applyLocal(o);persist();if(SY)SYAGAIN=true;setTimeout(sync,0)}
+async function http(path,opt,ms){var ac=new AbortController(),t=setTimeout(function(){ac.abort()},ms||8000);
+ try{var r=await fetch(path,Object.assign({},opt||{},{signal:ac.signal})),j=null;try{j=await r.json()}catch(e){}if(r.ok&&(j===null||typeof j!="object")){var bj=new Error("unexpected answer from the server (is something else answering in front of the app?)");bj.status=r.status;throw bj}if(!r.ok){var er=new Error((j&&j.detail)||("server said "+r.status));er.status=r.status;throw er}return j}
+ catch(e){if(e&&e.name=="AbortError")throw new Error("the server didn’t answer in time");throw e}finally{clearTimeout(t)}}
+function post(p,o,ms){return http(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(o||{})},ms)}
+var SYERR="";
+/* the server's answer per op: ok/dup = saved (kept in SENT until a snapshot has it), error = refused (REJ),
+   retry = a temporary server problem (database busy, disk): stays in the outbox. Returns true if anything must be retried. */
+function drop(batch,res){var m={},again=false;res.forEach(function(x){m[x.uuid]=x});PEND=PEND.filter(function(o){var x=batch.indexOf(o)>-1&&m[o.uuid];if(!x)return true;if(x.status=="retry"){again=true;return true}if(x.status=="error")REJ.push({op:o,msg:x.msg});else if(o.kind=="photo")phSaved(o);else SENT.push(o);return false});persist();return again}
+/* every snapshot comes through here: only a well-formed one is used, an older request never replaces a newer one, and
+   SENT ops are let go once a snapshot fetched after they were accepted has arrived */
+var STSEQ=0,STAPP=0;
+async function getState(){var my=++STSEQ,sent=SENT.map(function(o){return o.uuid}),s=await http("/api/state",null,20000);
+ if(!okState(s)){var e=new Error("unexpected answer from the server");e.status=200;throw e}
+ if(my<STAPP)return;STAPP=my;SV=s;SVFRESH=true;SENT=SENT.filter(function(o){return sent.indexOf(o.uuid)<0})}
+async function sync(){if(SY)return;if(navigator.onLine===false){ONLINE=false;rebuild();soft();return}SY=true;
+ try{var plain=PEND.filter(function(o){return o.kind!="photo"}),pics=PEND.filter(function(o){return o.kind=="photo"}),batches=[];
+  for(var i=0;i<plain.length;i+=100)batches.push(plain.slice(i,i+100));pics.forEach(function(o){batches.push([o])});
+  for(var b=0;b<batches.length;b++){var bt=batches[b];
+   PHUP=bt[0].kind=="photo"?bt[0].uuid:null;if(PHUP)phBar();
+   try{var r=await post("/api/sync",{ops:bt},PHUP?60000:30000);if(!r||!r.results)throw new Error("unexpected answer from the server");if(drop(bt,r.results)){var ra=new Error("the server is busy; waiting entries will be sent again");ra.status=503;throw ra}}
+   catch(e){if((e.status==400||e.status==413||e.status==422)&&bt.length==1&&bt[0].kind=="photo"){drop(bt,[{uuid:bt[0].uuid,status:"error",msg:e.message}]);continue}throw e}  // one refused photo can't block the rest
+   finally{PHUP=null}}
+  await getState();ONLINE=true;SYERR="";persist(true)}
+ catch(e){if(e&&e.status){ONLINE=true;SYERR=e.message}else ONLINE=false}
+ SY=false;rebuild();soft();if(SYAGAIN&&ONLINE){SYAGAIN=false;setTimeout(sync,0)}}
+function hdr(){var n=PEND.length;$("hdr").innerHTML=(ONLINE?(SYERR?'<span style="color:var(--bad)">●</span> sync problem: '+esc(SYERR):'<span style="color:var(--ok)">●</span> online'):'<span style="color:var(--bad)">●</span> offline')+(n?" · "+n+" pending":"")+(REJ.length?" · "+REJ.length+" rejected":"")+(PFULL?' · <span style="color:var(--bad)">phone storage full: stay online until it syncs</span>':"")+(SV.user?" · "+esc(SV.user):"");bellRender();verBar();phBar()}
+function soft(){hdr();var w=$("flt");if(w&&!w.contains(document.activeElement))w.innerHTML=fltIn();if($("sel")&&(tab=="Transfer"||tab=="Sale/Adjust")){var sc=$("sel").scrollTop;refSel(true);$("sel").scrollTop=sc}if(tab=="Stock"&&!ED&&!X.pid&&$("res"))$("res").innerHTML=stockHtml();
+ if(tab=="Log"&&!RVK&&!(document.activeElement&&/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))){var y=window.scrollY,m0=msg;render();msg=m0;window.scrollTo(0,y)}}
+async function call(fn,ok){try{await fn();await getState();persist(true);rebuild();ED=null;RN=null;done(ok)}catch(e){try{await getState();persist(true);rebuild()}catch(e2){}fail("Couldn’t save: "+e.message+(ONLINE?"":" (this action needs a connection)"))}}
+/* ---------- messages ---------- */
+function fail(t,ids){msg={e:1,t:t};var b=$("mb");if(!b)return render();if($("mbt"))$("mbt").innerHTML="";b.innerHTML='<div class="msg err">'+esc(t)+"</div>";document.querySelectorAll(".bad").forEach(function(e){e.classList.remove("bad")});(ids||[]).forEach(function(i){var e=$(i);if(e)e.classList.add("bad")});var f=ids&&ids.length?$(ids[0]):null;if(f&&f.scrollIntoView)f.scrollIntoView({block:"center"});toastIf("mb",t,1)}
+/* Confirmations (green) always show at the top: on Receive in the box above the form, elsewhere as a banner over the tabs (owner request 2026-11-26).
+   Errors (red) stay next to the button they belong to. */
+function done(t){persist();msg={e:0,t:t};render();if(tab=="Receive")window.scrollTo(0,0)}
+function toastIf(id,t,e){var b=$(id);if(b){var r=b.getBoundingClientRect();if(r.top>=0&&r.bottom<=innerHeight)return}toast(t,e)}
+function toast(t,e){var o=$("toast");if(!o){o=document.createElement("div");o.id="toast";o.style.cssText="position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top) + 8px);z-index:70;max-width:616px;margin:auto;box-shadow:0 4px 14px rgba(0,0,0,.35);margin-top:0";o.onclick=function(){o.remove()};document.body.appendChild(o)}
+ o.className="msg toast "+(e?"err":"ok");o.setAttribute("role","status");o.textContent=t;clearTimeout(toast.t);toast.t=setTimeout(function(){if(o.parentNode)o.remove()},e?9000:5000)}
+/* success message without re-rendering; on Receive it goes in the top box #mbt, errors stay in #mb by the button */
+function okMsg(t){msg={e:0,t:t};var b=$("mbt")||$("mb"),e=$("mb");if(e&&e!==b)e.innerHTML="";if(tab!="Receive"||!$("mbt")){if(e)e.innerHTML="";msg=null;return toast(t,0)}if(b)b.innerHTML='<div class="msg ok">'+esc(t)+"</div>"}
+function go(t){if(TOP.indexOf(t)>-1)LASTTOP=t;if(t!=tab)window.scrollTo(0,0);tab=t;msg=null;PSEL=null;ADDED=[];PH=null;IMP=[];ED=null;X={pid:null};RN=null;BMV=null;RVK=null;CPHP=null;if($("toast"))$("toast").remove();render()}
+/* ---------- photos ---------- */
+/* Shrinks a picked photo to an 800px JPEG. Every outcome is reported: a photo the phone can't open (or runs out of memory
+   on, which gives an empty "data:,") calls bad (or shows an error) instead of vanishing. PHBUSY counts photos still being
+   prepared, so Receive waits for them (phWait) instead of saving without the photo. */
+var PHBUSY=0,PHWQ=null;
+function readPhoto(f,cb,bad){PHBUSY++;var u=null,over=false,tm=setTimeout(function(){fin(null)},20000);
+ function fin(d){if(over)return;over=true;clearTimeout(tm);PHBUSY--;if(u)try{URL.revokeObjectURL(u)}catch(e){}
+  var w=!PHBUSY&&PHWQ;if(w)PHWQ=null;
+  if(d){cb(d);if(w)w()}
+  else{var t="That photo couldn’t be opened on this phone, so it was not added. Try again, or take it with the camera.";
+   if(w){if(bad)bad(t,1);w();fail(t.replace("Try again","Everything else was saved without it. Add the photo again"))}else if(bad)bad(t);else fail(t)}}
+ var im=new Image();im.onerror=function(){fin(null)};im.onload=function(){try{var s=Math.min(1,800/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.max(1,Math.round(im.width*s));c.height=Math.max(1,Math.round(im.height*s));c.getContext("2d").drawImage(im,0,0,c.width,c.height);var d=c.toDataURL("image/jpeg",0.6);fin(/^data:image\/jpeg;base64,.{100}/.test(d)?d:null)}catch(e){fin(null)}};
+ try{u=URL.createObjectURL(f);im.src=u}catch(e){var r=new FileReader();r.onerror=function(){fin(null)};r.onload=function(){im.src=r.result};r.readAsDataURL(f)}}
+function phWait(fn){if(!PHBUSY)return fn();PHWQ=fn;var b=$("mb");if(b)b.innerHTML='<div class="msg warn">Preparing the photo… this saves as soon as it’s ready.</div>'}
+/* a file picker that stays in the page until it answers (iOS can drop a detached one, and the photo with it) */
+function pickImg(cb){document.querySelectorAll(".pickimg").forEach(function(e){e.remove()});var inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.className="pickimg";inp.style.cssText="position:fixed;left:-999px;top:0;width:1px;height:1px;opacity:0";document.body.appendChild(inp);inp.onchange=function(){var f=inp.files[0];inp.remove();if(f)cb(f)};inp.click()}
+var PHF=null;function onPick(inp){var f=inp.files[0];if(!f)return;PHF=f;PH=null;moreSum();readPhoto(f,function(d){PH=d;if($("pv")){$("pv").src=d;$("pv").style.display="block"}var b=$("rdph");if(b)b.style.display="block"},function(t){if(PHF===f){PHF=null;inp.value="";moreSum()}fail(t)})}
+function readPicked(){if(PHF)runScan(PHF)}
+function chg(id){pickImg(function(f){readPhoto(f,function(d){queue({kind:"photo",product:P(id).name,data:d});done("Photo added. The bar at the top shows when it has uploaded.")})})}
+function zoom(id){Z=id;render()}
+function thumb(p){var k=phMark(p.name,"");return p.photo?'<img class="th" src="'+p.photo+'"'+phOut(k)+' onclick="event.stopPropagation();zoom('+p.id+')">':'<button class="ph"'+phOut(k)+' onclick="event.stopPropagation();chg('+p.id+')">+ photo</button>'}
+/* ---------- photo upload status ----------
+   Every photo is in one of three places: PEND (waiting / uploading), REJ (failed: the server refused it; the photo is kept
+   so it can be retried) or PHOK (saved, this session). The bar under the header and the list (phList) show all of them. */
+var PHOK=[],PHUP=null,PHT=null;
+function phSaved(o){PHOK.unshift({u:o.uuid,product:o.product,colour:o.colour||"",t:Date.now()});PHOK=PHOK.slice(0,30)}
+function phSame(a,b){return String(a||"").toLowerCase()==String(b||"").toLowerCase()}
+function phMark(name,col){if(!name)return"";function m(o){return phSame(o.product,name)&&phSame(o.colour,col)}
+ if(REJ.some(function(x){return x.op.kind=="photo"&&m(x.op)}))return"f";return PEND.some(function(o){return o.kind=="photo"&&m(o)})?"w":""}
+function phOut(k){return k=="f"?' style="outline:2px solid var(--bad);outline-offset:1px" title="Photo didn’t upload"':k=="w"?' style="outline:2px dashed #e0a800;outline-offset:1px" title="Photo still uploading"':""}
+function phNote(name,col){var k=phMark(name,col);return k=="f"?' <span style="color:var(--bad)">Photo didn’t upload.</span> <button class="sm" onclick="event.stopPropagation();phList()">See why</button>':k=="w"?' <span class="m" style="display:inline">Photo uploading…</span>':""}
+function phData(o){return typeof o.data=="string"&&o.data.indexOf("data:image")==0}
+function phBar(){var e=$("phbar");if(!e)return;var w=PEND.filter(function(o){return o.kind=="photo"}),f=REJ.filter(function(x){return x.op.kind=="photo"}),now=Date.now(),ok=PHOK.filter(function(x){return now-x.t<120000}),h="",n=function(k,a){return k+" photo"+(k==1?"":"s")+a};
+ clearTimeout(PHT);if(ok.length&&!w.length&&!f.length)PHT=setTimeout(phBar,120500-(now-ok[0].t));
+ var see=' <button class="sm" onclick="phList()">Details</button>';
+ if(f.length)h+='<div class="msg err" style="margin:0 0 10px">📷 '+n(f.length," didn’t upload.")+(f.some(function(x){return phData(x.op)})?' <button class="sm" onclick="phRetry()">Retry</button>':"")+see+"</div>";
+ if(w.length)h+='<div class="msg" style="margin:0 0 10px;background:var(--card);border:1px solid var(--bd)">📷 '+(ONLINE&&!SYERR?(PHUP?"Uploading ":"Waiting to upload ")+n(w.length,"…"):n(w.length," waiting: they upload when the connection is back."))+see+"</div>";
+ else if(ok.length&&!f.length)h+='<div class="msg ok" style="margin:0 0 10px">📷 '+n(ok.length," saved ✓")+see+"</div>";
+ var rj=REJ.filter(function(x){return x.op.kind!="photo"}).length;if(rj&&tab!="Log")h='<div class="msg err" style="margin:0 0 10px">'+rj+(rj==1?" entry was":" entries were")+' refused by the server and not saved. <button class="sm" onclick="go(\'Log\')">See why</button></div>'+h;
+ e.innerHTML=h;if($("phov"))phList()}
+function phList(){var o=$("phov");if(!o){o=document.createElement("div");o.id="phov";o.style.cssText="position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column";document.body.appendChild(o)}
+ function row(img,o_,st,btn){var p=S.prods.find(function(x){return phSame(x.name,o_.product)});return'<div class="gr"><span style="display:flex;align-items:center;gap:10px;min-width:0">'+(img?'<img class="th" src="'+esc(img)+'">':'<span class="ph" style="display:inline-block"></span>')+'<span style="overflow-wrap:anywhere"><b>'+esc(p?p.name:o_.product)+'</b>'+(o_.colour?" · "+esc(o_.colour):"")+'<div class="m" style="display:block">'+st+"</div></span></span><span style=\"flex:none;display:flex;gap:6px\">"+(btn||"")+"</span></div>"}
+ var h="";REJ.forEach(function(x){if(x.op.kind!="photo")return;var ok=phData(x.op);h+=row(ok?x.op.data:null,x.op,'<span style="color:var(--bad)">Didn’t upload: '+esc(x.msg)+"</span>"+(ok?"":" · pick the photo again"),(ok?'<button class="sm" data-u="'+esc(x.op.uuid)+'" onclick="phRetry(this.dataset.u)">Retry</button>':"")+'<button class="sm" data-u="'+esc(x.op.uuid)+'" onclick="phDrop(this.dataset.u)">Remove</button>')});
+ PEND.forEach(function(x){if(x.kind!="photo")return;h+=row(x.data,x,x.uuid==PHUP?"Uploading…":ONLINE&&!SYERR?"Waiting to upload":"Waiting for a connection")});
+ PHOK.forEach(function(x){var p=S.prods.find(function(y){return phSame(y.name,x.product)}),u=p?(x.colour?cphU(p.id,x.colour):p.photo):null;h+=row(u,x,'<span style="color:var(--ok)">Saved ✓</span> '+esc(fmt(new Date(x.t).toISOString())))});
+ o.innerHTML='<div class="ghd"><div><b>Photo uploads</b><div class="m" style="display:block">'+(ONLINE?(SYERR?"Sync problem: "+esc(SYERR):"Online"):"Offline")+'</div></div><button class="sm" onclick="this.closest(\'#phov\').remove()">Close</button></div><div class="gbd">'+(h||'<p class="m" style="display:block">No photos uploaded yet in this session.</p>')+"</div>"+(PEND.some(function(x){return x.kind=="photo"})?'<div class="gft"><button class="btn" onclick="sync()">Try uploading now</button></div>':"")}
+/* send a failed photo again (one, or every failed photo that still has its picture); same uuid, so a resend can't double-save */
+function phRetry(u){var keep=[],back=[];REJ.forEach(function(x){if(x.op.kind=="photo"&&phData(x.op)&&(!u||x.op.uuid==u))back.push(x.op);else keep.push(x)});if(!back.length)return;
+ REJ=keep;back.forEach(function(o){PEND.push(o)});rebuild();persist();soft();if(SY)SYAGAIN=true;setTimeout(sync,0)}
+function phDrop(u){REJ=REJ.filter(function(x){return x.op.uuid!=u});persist();soft();if(tab=="Log")render()}
+/* ---------- stock tree ---------- */
+function tg(k){O[k]=!O[k];$("res").innerHTML=stockHtml()}
+var WF=(function(){try{return+localStorage.getItem("wf")||0}catch(e){return 0}})();
+function wfv(){return WF&&act().some(function(l){return l.id==WF})?WF:0}
+function setWF(id){WF=id;try{localStorage.setItem("wf",id)}catch(e){}render()}
+function wfChips(){return'<div id="flt">'+fltIn()+"</div>"}
+function fltIn(){var c=catChips(),w='<div id="wfc">'+wfIn()+"</div>";return c?'<div class="two" style="margin:0 0 10px">'+c+w+"</div>":'<div style="margin:0 0 10px">'+w+"</div>"}
+var CAT=(function(){try{var v=localStorage.getItem("cat");return v===null?"*":v}catch(e){return"*"}})();
+function cats(){return uniq(S.prods.map(function(p){return p.cat||""}).filter(Boolean)).sort(nat)}
+function catv(){if(CAT=="*")return"*";if(CAT==="")return cats().length&&S.prods.some(function(p){return!p.cat})?"":"*";return cats().indexOf(CAT)>-1?CAT:"*"}
+var CO=(function(){try{return JSON.parse(localStorage.getItem("cato")||"{}")}catch(e){return{}}})();
+function togCat(k){CO[k]=!CO[k];try{localStorage.setItem("cato",JSON.stringify(CO))}catch(e){}$("res").innerHTML=stockHtml()}
+function setCat(v){CAT=v;try{localStorage.setItem("cat",v)}catch(e){}render()}
+function catChips(){var cs=cats();if(!cs.length)return"";var cv=catv(),un=S.prods.some(function(p){return!p.cat});
+ var b=function(v,t){return'<option value="'+esc(v)+'"'+(cv===v?" selected":"")+">"+esc(t)+"</option>"};
+ return'<select id="catc" aria-label="Category" onchange="setCat(this.value)">'+b("*","All categories")+cs.map(function(c){return b(c,c)}).join("")+(un?b("","Uncategorised"):"")+"</select>"}
+function catField(p){return'<label>Category (e.g. Home Textiles, School wear)</label><input id="ecat" autocomplete="off" placeholder="None" value="'+esc(p.cat||"")+'" oninput="catSug()" onfocus="catSug()" onblur="catHide()"><div id="ecs"></div>'}
+function catSug(){var inp=$("ecat"),box=$("ecs");if(!inp||!box)return;if(document.activeElement!==inp){box.innerHTML="";return}
+ var cu=inp.value.trim(),lc=cu.toLowerCase(),o=cats(),exact=o.some(function(x){return x.toLowerCase()==lc}),
+  m=o.filter(function(x){return!lc||x.toLowerCase().indexOf(lc)>-1}).sort(function(x,y){return(y.toLowerCase().indexOf(lc)==0)-(x.toLowerCase().indexOf(lc)==0)}),
+  op=function(v,t,c){return'<div class="opt'+(c||"")+'" data-v="'+esc(v)+'" onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="pickCat(this)">'+t+"</div>"};
+ box.innerHTML=m.length||(cu&&!exact)?'<div class="sg">'+m.map(function(x){return op(x,esc(x))}).join("")+(cu&&!exact?op(cu,"+ Add “"+esc(cu)+"”"," add"):"")+"</div>":""}
+function catHide(){setTimeout(function(){var b=$("ecs");if(b&&document.activeElement!==$("ecat"))b.innerHTML=""},400)}
+function pickCat(b){GHOST=Date.now();$("ecat").value=b.dataset.v;$("ecs").innerHTML=""}
+function wfIn(){return'<select aria-label="Warehouse" onchange="setWF(+this.value)">'+[{id:0,name:"All warehouses"}].concat(act()).map(function(l){return'<option value="'+l.id+'"'+(wfv()==l.id?" selected":"")+">"+esc(l.name)+"</option>"}).join("")+"</select>"}
+function zc(n){return n>0?n+" ctn":'<span style="color:var(--bad)">0 ctn</span>'}
+function stockHtml(){
+ var FA={},FR={};alerts().forEach(function(x){FA[x.v.id]=1});refills().forEach(function(x){FR[x.v.id]=1});
+ function fc(l){var a=l.some(function(x){return FA[x.v]}),r=l.some(function(x){return FR[x.v]});return a&&r?" f-o":a?" f-r":r?" f-p":""}
+ var q=Q.trim().toLowerCase(),r=rows().filter(function(x){return x.q!==0&&(!wfv()||x.loc==wfv())}),h="",fl=S.mv.filter(function(x){return x.flag}).length;
+ // a warehouse an item has been entered into but that now holds none of it (entered as 0, counted to 0, sold out) still shows, as 0
+ var zk={},zt={};S.mv.forEach(function(m){var k=m.v+"|"+m.loc;zt[k]=(zt[k]||0)+m.qty;zk[k]=1});
+ Object.keys(zk).forEach(function(k){if(zt[k]!==0)return;var a=k.split("|"),loc=+a[1];if(wfv()&&loc!=wfv())return;if(!act().some(function(l){return l.id==loc}))return;r.push({v:+a[0],lot:"",loc:loc,q:0,zl:1})});
+ if(!wfv()){var have={};r.forEach(function(x){have[x.v]=1});S.vars.forEach(function(v){if(!have[v.id])r.push({v:v.id,lot:"",loc:0,q:0,zero:1})})}
+ if(Object.keys(FA).length||Object.keys(FR).length)h+='<div class="m" style="display:block;margin:0 0 8px"><span class="lg lr"></span>reorder <span class="lg lp"></span>refill picking <span class="lg lo"></span>both</div>';
+ if(fl)h+='<div class="msg warn">'+fl+' entr'+(fl>1?"ies":"y")+' took a lot below zero (see Log). Check them.</div>';
+ var cv0=catv(),lastCat=null,hasCats=cats().length>0;
+ var pendHead=false,pcn=0;
+ S.prods.slice().sort(function(a,b){return((a.pend?1:0)-(b.pend?1:0))||(hasCats&&cv0=="*"?((a.cat?0:1)-(b.cat?0:1))||nat(a.cat||"",b.cat||"")||nat(a.name,b.name):nat(a.name,b.name))}).forEach(function(p){
+  if(cv0!=="*"&&(p.cat||"")!==cv0)return;
+  if(p.pend&&wfv())return;
+  var pr=r.filter(function(x){return V(x.v).prod==p.id});if(!pr.length)return;
+  if(q){var ws=words(q),hit=pr.some(function(x){var v=V(x.v);return hasAll(p.name+" "+(p.alias||"")+" "+(v.colour||"")+" "+(v.size||""),ws)});if(!hit)return}
+  var op=!!O["p"+p.id];
+  if(p.pend&&!pendHead){pendHead=true;var pc="\u0000PC\u0000",pcl=!!CO["c:__pend"]&&!q;
+   h+='<div class="cath" data-c="c:__pend" onclick="togCat(this.dataset.c)">'+(pcl?"▸ ":"▾ ")+'Pending: set up, not received yet <span class="m" style="display:inline;text-transform:none;letter-spacing:0">· '+pc+" item"+(pc==1?"":"s")+"</span></div>"}
+  if(p.pend)pcn++;if(p.pend&&CO["c:__pend"]&&!q)return;
+  if(!p.pend&&hasCats&&cv0=="*"&&lastCat!==(p.cat||"")){lastCat=p.cat||"";var cl=!!CO["c:"+lastCat]&&!q,cn=S.prods.filter(function(z){return(z.cat||"")==lastCat&&r.some(function(x){return V(x.v).prod==z.id})}).length;
+   h+='<div class="cath" data-c="'+esc("c:"+lastCat)+'" onclick="togCat(this.dataset.c)">'+(cl?"▸ ":"▾ ")+esc(lastCat||"Uncategorised")+(cl?' <span class="m" style="display:inline;text-transform:none;letter-spacing:0">· '+cn+" item"+(cn==1?"":"s")+"</span>":"")+"</div>"}
+  if(!p.pend&&hasCats&&cv0=="*"&&CO["c:"+lastCat]&&!q)return;
+  h+='<div class="row'+fc(pr)+'" data-k="p'+p.id+'" onclick="tg(this.dataset.k)">'+thumb(p)+'<div class="grow"><b>'+esc(p.name)+'</b>'+(p.pend?'<span class="m">pending: not received yet</span>':"")+(p.alias?'<span class="m">'+esc(p.alias)+'</span>':'')+'</div><div>'+(p.pend?'<span class="m" style="display:inline">–</span>':zc(sum(pr)))+' '+(op?"▾":"▸")+'</div></div>';
+  if(!op)return;
+  h+='<div class="sub" style="display:block">'+(ppk(p)&&!S.vars.some(function(v){return v.prod==p.id&&vpk(v)})?'<span class="m">'+esc(ppk(p))+' per carton</span>':'')+'<div style="margin-top:6px">'+(p.pend?'<button class="sm" data-p="'+p.id+'" onclick="pendRcv(+this.dataset.p)">Receive now</button> <button class="sm" data-p="'+p.id+'" onclick="pendAct(+this.dataset.p)">Activate</button> ':"")+'<button class="sm" data-k="p'+p.id+'" onclick="edt(this.dataset.k)">Edit item</button> '+(!p.pend&&!hasMv(p.id)?'<button class="sm" data-p="'+p.id+'" onclick="pendBack(+this.dataset.p)">Move back to pending</button> ':"")+'<button class="sm" onclick="chg('+p.id+')">Change photo</button>'+phNote(p.name,"")+''+(pr.some(function(x){return secs(x.loc).length&&x.q>0})?' <button class="sm" data-p="'+p.id+'" onclick="'+(BMV&&BMV.p==p.id?"bmStop()":"bmStart(+this.dataset.p)")+'">'+(BMV&&BMV.p==p.id?"Stop selecting":"Move several to a section")+'</button>':"")+'</div></div>';
+  if(ED=="p"+p.id)h+=edf('<label>Item name</label><input id="en" value="'+esc(p.name)+'"><label>Internal name (searchable)</label><input id="ea" value="'+esc(p.alias||"")+'">'+catField(p)+'<label>Per carton (optional, e.g. 24 doz, 24x6 rolls, 60)</label><input id="ep" autocomplete="off" value="'+esc(ppk(p))+'"><label>Photo per colour (printed designs)</label><select id="ecp"><option value="0"'+(p.cp?"":" selected")+'>Off</option><option value="1"'+(p.cp?" selected":"")+'>On: each colour can have its own photo</option></select><label>Group this item\'s stock by</label><select id="egp"><option value="colour"'+(p.grp=="size"?"":" selected")+'>Colour, then size</option><option value="size"'+(p.grp=="size"?" selected":"")+'>Size, then colour</option></select><label>Picking warehouse (where this item is picked from)</label><select id="epl"><option value="0">Not set (use where it already has stock)</option>'+S.locs.filter(function(l){return l.on&&l.role=="picking"}).map(function(l){return'<option value="'+l.id+'"'+(p.pickloc==l.id?" selected":"")+">"+esc(l.name)+"</option>"}).join("")+'</select><label>Reorder level for ALL colours and sizes (cartons, 0 = off)</label><input id="er" type="number" inputmode="numeric" min="0"'+roAttr(p.id)+'><label>Refill picking when picking stock is at or below, ALL colours and sizes (cartons, 0 = off)</label><input id="ep2" type="number" inputmode="numeric" min="0"'+roAttr(p.id,"pickmin")+'><label>Picking maximum: fill up to this many cartons, ALL colours and sizes (0 = no maximum)</label><input id="ep3" type="number" inputmode="numeric" min="0"'+roAttr(p.id,"pickmax")+'>'+dscSel(S.vars.filter(function(v){return v.prod==p.id})));
+  var sw=p.grp=="size",OF=sw?"size":"colour",IF=sw?"colour":"size",OT=sw?"z":"c";
+  uniq(pr.map(function(x){return V(x.v)[OF]||""})).sort(dimCmp(OF)).forEach(function(c){
+   var cr=pr.filter(function(x){return(V(x.v)[OF]||"")==c}),ck=OT+p.id+"|"+c,co=!!O[ck],cv=uniq(cr.map(function(x){return x.v})).map(V),pp=uniq(cv.map(function(v){return vpk(v)||ppk(p)})),ds=cv.length&&cv.every(function(v){return v.disc});
+   h+='<div class="sub'+fc(cr)+(ds?" dc":"")+'" data-k="'+esc(ck)+'" onclick="tg(this.dataset.k)"><span>'+(!sw&&p.cp?cphThumb(p.id,c):"")+esc(c||(sw?"n/a":"n/a"))+(ds?' <span class="m" style="display:inline">(discontinued)</span>':"")+(pp.length==1&&pp[0]?'<span class="m" style="display:block">'+esc(pp[0])+' per carton</span>':"")+'</span><span style="display:flex;align-items:center;gap:10px"><span style="min-width:76px;text-align:right;white-space:nowrap">'+(p.pend?'<span class="m" style="display:inline">–</span>':zc(sum(cr)))+' '+(co?"▾":"▸")+'</span><button class="sm" style="min-width:52px" data-k="'+esc(ck)+'" onclick="event.stopPropagation();edt(this.dataset.k)">Edit</button></span></div>';
+   if(ED==ck)h+=edf(sw?'<label>Rename size (applies to every colour; an existing size name merges them)</label><input id="ev" value="'+esc(c)+'"><p class="m" style="display:block">Levels below apply to every colour of this size, so each colour gets the same numbers. Leave blank to keep what each colour has now.</p><label>Reorder when stock is at or below, per colour (cartons, 0 = off)</label><input id="er" type="number" inputmode="numeric" min="0"'+roAttr(p.id,"reorder",undefined,c)+'><label>Refill picking when picking stock is at or below, per colour (cartons, 0 = off)</label><input id="ep2" type="number" inputmode="numeric" min="0"'+roAttr(p.id,"pickmin",undefined,c)+'><label>Picking maximum per colour: fill up to this many cartons (0 = no maximum)</label><input id="ep3" type="number" inputmode="numeric" min="0"'+roAttr(p.id,"pickmax",undefined,c)+'>'+ppcIn(cv,p)+dscSel(cv):'<label>Rename colour (an existing colour name merges them)</label><input id="ev" value="'+esc(c)+'"><p class="m" style="display:block">Levels below apply to every size of this colour, so each size gets the same numbers. Leave blank to keep what each size has now.</p><label>Reorder when stock is at or below (cartons, 0 = off)</label><input id="er" type="number" inputmode="numeric" min="0"'+roAttr(p.id,"reorder",c)+'><label>Refill picking when picking stock is at or below, per size (cartons, 0 = off)</label><input id="ep2" type="number" inputmode="numeric" min="0"'+roAttr(p.id,"pickmin",c)+'><label>Picking maximum per size: fill up to this many cartons (0 = no maximum)</label><input id="ep3" type="number" inputmode="numeric" min="0"'+roAttr(p.id,"pickmax",c)+'>'+dscSel(cv));
+   if(!co)return;
+   uniq(cr.map(function(x){return V(x.v)[IF]||""})).sort(dimCmp(IF)).forEach(function(s){
+    var sr=cr.filter(function(x){return(V(x.v)[IF]||"")==s}),col=sw?s:c,siz=sw?c:s,ek="s"+p.id+"|"+col+"|"+siz,fv=findV(p.id,col,siz)||{};
+    var ef=vpk(fv)||ppk(p),bm=BMV&&BMV.p==p.id;h+='<div class="sz'+fc(sr)+(fv.disc?" dc":"")+(bm&&sr.some(function(x){return BMV.sel[x.v+"|"+x.lot]&&BMV.loc==x.loc})?" bms":"")+'"><div style="display:flex;justify-content:space-between;align-items:center"><b>'+(sw&&p.cp?cphThumb(p.id,s):"")+esc(s||(sw?"n/a":"n/a"))+(fv.disc?" (discontinued)":"")+': '+zc(sum(sr))+'</b><button class="sm" data-k="'+esc(ek)+'" onclick="edt(this.dataset.k)">Edit</button></div>'+sr.filter(function(x){return!x.zero}).map(function(x){return bm?bmLine(x):'<span class="m">'+esc(LN(x.loc))+' · '+(x.lot?"lot "+esc(x.lot):"no lot")+' · '+(x.q?x.q:'<span style="color:var(--bad)">0</span>')+(secs(x.loc).length&&x.q?'<a class="mapl" data-v="'+x.v+'" data-lot="'+esc(x.lot)+'" data-loc="'+x.loc+'" onclick="event.stopPropagation();lineMap(+this.dataset.v,this.dataset.lot,+this.dataset.loc)">📍 '+esc(secSum(x.v,x.lot,x.loc))+'</a>':"")+'</span>'}).join("")+(ef?'<span class="m">'+esc(ef)+' per carton</span>':"")+'</div>';
+    if(ED==ek)h+=edf('<label>'+(sw?"Rename colour (applies to this colour in every size; an existing name merges them)":"Rename size (an existing size name merges them)")+'</label><input id="ev" value="'+esc(s)+'"><label>Reorder when stock is at or below (cartons, 0 = off)</label><input id="er" type="number" inputmode="numeric" min="0" value="'+(fv.reorder||0)+'"><label>Refill picking when picking stock is at or below (cartons, 0 = off)</label><input id="ep2" type="number" inputmode="numeric" min="0" value="'+(fv.pickmin||0)+'"><label>Picking maximum: fill up to this many cartons (0 = no maximum)</label><input id="ep3" type="number" inputmode="numeric" min="0" value="'+(fv.pickmax||0)+'">'+ppcIn([fv],p)+dscSel([fv]))})});
+ });
+ h=h.replace("\u0000PC\u0000 items",pcn+" item"+(pcn==1?"":"s"));return(h||'<p class="m">Nothing found. Use Receive to add stock.</p>')+bmBar()}
+/* ---------- reorder alerts (bell, top right) ---------- */
+var BUILD="__BUILD__";
+function verBar(){var e=$("verbar");if(!e)return;var stale=SVFRESH&&SV.build&&BUILD.slice(0,2)!="__"&&SV.build!==BUILD;
+ e.innerHTML=stale?'<div class="msg warn" style="margin:0 0 10px">A new version is available. <button class="sm" onclick="reloadApp()">Update now</button></div>':""}
+async function reloadApp(){try{var r=await navigator.serviceWorker.getRegistration();if(r)await r.update()}catch(e){}location.reload()}
+var BELL=false;
+function alerts(){var t={};S.mv.forEach(function(m){t[m.v]=(t[m.v]||0)+m.qty});
+ return S.vars.filter(function(v){return!v.disc&&!(P(v.prod)||{}).pend&&v.reorder>0&&(t[v.id]||0)<=v.reorder}).map(function(v){return{v:v,q:t[v.id]||0}})}
+function refills(){if(!S.locs.some(function(l){return l.on&&l.role=="picking"}))return[];var pk={},hd={},pl={};S.mv.forEach(function(m){var l=S.locs.find(function(x){return x.id==m.loc});if(!l||!l.on)return;
+ if(l.role=="picking"){pk[m.v]=(pk[m.v]||0)+m.qty;var o=pl[m.v]=pl[m.v]||{};o[m.loc]=(o[m.loc]||0)+m.qty}else{var h=hd[m.v]=hd[m.v]||{};h[m.loc]=(h[m.loc]||0)+m.qty}});
+ return S.vars.filter(function(v){return!v.disc&&v.pickmin>0&&(pk[v.id]||0)<=v.pickmin}).map(function(v){
+  var h=hd[v.id]||{},q=pk[v.id]||0,need=v.pickmax>q?v.pickmax-q:0,left=need;
+  var hl=Object.keys(h).filter(function(k){return h[k]>0}).map(function(k){var mv=Math.min(left,h[k]);left-=mv;return{loc:+k,q:h[k],mv:mv}});
+  var po=pl[v.id]||{},dest=0,best=0;Object.keys(po).sort(function(a,b){return a-b}).forEach(function(k){if(po[k]>best){best=po[k];dest=+k}});
+  return{v:v,q:q,need:need,bring:need-left,h:hl,dest:dest}})}
+function bellCount(){return alerts().length+refills().length}
+function vgroup(a){var g={};a.forEach(function(x){(g[x.v.prod]=g[x.v.prod]||[]).push(x)});return g}
+function vsort(l){return l.sort(function(x,y){return nat(x.v.colour||"",y.v.colour||"")||szCmp(x.v.size||"",y.v.size||"")})}
+var BS={},BD=0;
+function bsk(vid,loc){return vid+"|"+loc}
+function bsg(vid,loc,def){var k=bsk(vid,loc),b=BS[k];if(!b)b=BS[k]={on:def>0,q:def,u:0};if(!b.u)b.q=def;return b}
+function bsOn(k,v){BS[k].on=v;bellRender()}
+function bsQ(k,v){BS[k].q=Math.max(0,parseInt(v,10)||0);BS[k].u=1;bellRender()}
+function bsDest(){var l=S.locs.filter(function(x){return x.on&&x.role=="picking"});return l.find(function(x){return x.id==BD})||l[0]}
+function bsSetDest(v){BD=+v;bellRender()}
+var BO={};
+function lineDest(x){var pk=function(id){return S.locs.find(function(l){return l.id==id&&l.on&&l.role=="picking"})};return pk(BO[x.v.id])||pk(P(x.v.prod).pickloc)||pk(x.dest)||bsDest()}
+function bsLine(vid,v){BO[vid]=+v;bellRender()}
+function bsPlan(){var ops=[],ctn=0,errs=[],dests={};if(!bsDest())return{ops:ops,ctn:0,errs:errs,dests:dests};
+ refills().forEach(function(x){var d=lineDest(x);x.h.forEach(function(y){var b=bsg(x.v.id,y.loc,y.mv);if(!b.on)return;var q=b.q,left=q;if(q<=0)return;
+  rows().filter(function(r){return r.v==x.v.id&&r.loc==y.loc&&r.q>0}).sort(function(a,c){return a.lot===c.lot?0:!a.lot?-1:!c.lot?1:nat(a.lot,c.lot)}).forEach(function(r){
+   if(left<=0)return;var t=Math.min(left,r.q);ops.push(base(r,"transfer",t,{to:d.id}));left-=t});
+  if(left>0)errs.push(vl(x.v.id)+": only "+(q-left)+" ctn in "+LN(y.loc));ctn+=q-left;if(q-left>0)dests[d.name]=(dests[d.name]||0)+(q-left)})});
+ return{ops:ops,ctn:ctn,errs:errs,dests:dests}}
+/* PDFs open in an in-app sheet with Share/Print and Close (a bare PDF page in the home-screen app has no way back or to share) */
+var PDFB=null;
+async function pdfOpen(path){var ctl=new AbortController(),t=setTimeout(function(){ctl.abort()},25000);
+ try{var r=await fetch(path,{signal:ctl.signal});clearTimeout(t);
+  if(!r.ok){var j={};try{j=await r.json()}catch(e){}throw new Error(j.detail||("server said "+r.status))}
+  var b=await r.blob(),m=/filename="([^"]+)"/.exec(r.headers.get("Content-Disposition")||""),fn=m?m[1]:"document.pdf";
+  if(PDFB)URL.revokeObjectURL(PDFB.url);PDFB={file:new File([b],fn,{type:"application/pdf"}),url:URL.createObjectURL(b)};pdfView()}
+ catch(e){clearTimeout(t);fail("Couldn’t make the PDF: "+(e.name=="AbortError"?"it took too long":e.message))}}
+function loadPdfJs(){return new Promise(function(res,rej){if(window.pdfjsLib)return res();var s=document.createElement("script");s.src="/vendor/pdf.min.js";
+ s.onload=function(){pdfjsLib.GlobalWorkerOptions.workerSrc="/vendor/pdf.worker.min.js";res()};s.onerror=function(){rej(new Error("viewer not available"))};document.head.appendChild(s)})}
+async function pdfView(){var f=PDFB.file,can=!!(navigator.canShare&&navigator.share&&navigator.canShare({files:[f]})),el=$("pdfov");
+ el.style.display="flex";el.style.padding="0";
+ el.innerHTML='<div style="display:flex;flex-direction:column;width:100%;height:100%;background:var(--bg)"><div style="display:flex;align-items:center;gap:8px;padding:calc(env(safe-area-inset-top) + 8px) 12px 8px;border-bottom:1px solid var(--bd)"><button class="sm" onclick="pdfClose()">Close</button><button class="sm" onclick="pdfZoom(-0.5)">−</button><button class="sm" onclick="pdfZoom(0.5)">+</button><span class="m" style="flex:1;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(f.name)+"</span>"+
+  (can?'<button class="sm" onclick="pdfShare()">Share / Print</button>':'<a class="sm" style="text-decoration:none;color:var(--fg)" href="'+PDFB.url+'" download="'+esc(f.name)+'">Download</a>')+'</div><div id="pdfpg" style="flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding:8px"><p class="m">Loading…</p></div></div>';
+ try{await loadPdfJs();PDFB.doc=await pdfjsLib.getDocument({isEvalSupported:false,data:await f.arrayBuffer()}).promise;PDFB.z=1;await pdfDraw(f)}
+ catch(e){el.style.padding="16px";pdfShow()}}
+function pdfShow(){var f=PDFB.file,can=!!(navigator.canShare&&navigator.share&&navigator.canShare({files:[f]})),el=$("pdfov"),bs="margin:0 0 8px";
+ el.style.display="flex";el.innerHTML='<div style="background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:14px;padding:16px;width:100%;max-width:420px"><b>'+esc(f.name)+'</b><p class="m" style="display:block;margin:6px 0 12px">PDF ready. '+(can?"Share opens the share sheet: choose Print, Save to Files, AirDrop or a messaging app.":"Open it to view or print, or download it.")+'</p>'+
+  (can?'<button class="btn" style="'+bs+'" onclick="pdfShare()">Share / Print</button>':'<a class="btn" style="display:block;text-align:center;text-decoration:none;'+bs+'" href="'+PDFB.url+'" target="_blank" rel="noopener">Open PDF</a><a class="btn" style="display:block;text-align:center;text-decoration:none;'+bs+'" href="'+PDFB.url+'" download="'+esc(f.name)+'">Download</a>')+
+  '<button class="btn" style="background:var(--card);color:var(--fg);border:1px solid var(--bd);margin:0" onclick="pdfClose()">Close</button></div>'}
+async function pdfDraw(f){var box=$("pdfpg"),doc=PDFB.doc;if(!box||PDFB.file!==f)return;var tok=PDFB.tok=(PDFB.tok||0)+1,w=(box.clientWidth-16)*PDFB.z;box.innerHTML="";
+ for(var n=1;n<=doc.numPages;n++){var pg=await doc.getPage(n);if(PDFB.tok!=tok)return;var sc=w/pg.getViewport({scale:1}).width,dpr=Math.min(window.devicePixelRatio||1,2),v=pg.getViewport({scale:sc*dpr}),cv=document.createElement("canvas");
+  cv.width=v.width;cv.height=v.height;cv.style.cssText="width:"+w+"px;height:"+(v.height/dpr)+"px;background:#fff;display:block;margin:0 auto 10px;border-radius:4px";box.appendChild(cv);await pg.render({canvasContext:cv.getContext("2d"),viewport:v}).promise}}
+function pdfZoom(d){if(!PDFB||!PDFB.doc)return;PDFB.z=Math.min(3,Math.max(1,PDFB.z+d));pdfDraw(PDFB.file)}
+function pdfShare(){navigator.share({files:[PDFB.file],title:PDFB.file.name}).catch(function(){})}
+function pdfClose(){$("pdfov").style.display="none";$("pdfov").innerHTML=""}
+function reqPdf(){var d=bsDest();if(!d)return fail("Mark a warehouse as Picking first.");if(!ONLINE)return fail("Making the PDF needs a connection.");pdfOpen("/api/stock-request?dest="+d.id)}
+function bsRun(){var p=bsPlan();if(p.errs.length)return fail("Can’t record: "+p.errs.join("; ")+". Nothing was moved.");
+ if(!p.ops.length)return fail("Nothing selected. Tick the lines you moved and set the cartons.");
+ var ds=Object.keys(p.dests).map(function(k){return p.dests[k]+" into "+k}).join(", ");if(!confirm("Record "+p.ctn+" cartons ("+p.ops.length+" transfer"+(p.ops.length>1?"s":"")+"): "+ds+"?"))return;
+ p.ops.forEach(queue);BELL=false;done("Recorded "+p.ctn+" cartons moved: "+ds+".")}
+function bsInto(x){var pls=S.locs.filter(function(l){return l.on&&l.role=="picking"}),d=lineDest(x);
+ if(pls.length<2)return'Into <b>'+esc(d.name)+"</b>";
+ return'Into <select style="width:auto;display:inline-block;margin:0" onchange="bsLine('+x.v.id+',this.value)">'+pls.map(function(l){return'<option value="'+l.id+'"'+(l.id==d.id?" selected":"")+">"+esc(l.name)+"</option>"}).join("")+"</select>"+(x.dest||P(x.v.prod).pickloc?"":' <span class="m" style="display:inline">(no home picking warehouse yet, default)</span>')}
+function bellHtml(){var a=alerts(),f=refills(),st='style="background:var(--card);border:1px solid var(--bd);color:var(--fg);margin:0 0 10px"',
+ anyPick=S.locs.some(function(l){return l.role=="picking"}),hasMin=S.vars.some(function(v){return v.pickmin>0});
+ var h='<div class="msg" '+st+'>';
+ h+='<b>Pending transfers to picking</b>';
+ if(!hasMin||!anyPick)h+='<p class="m" style="display:block;margin:6px 0">'+(!anyPick?"No picking warehouse set yet. On the Warehouses tab, mark the ones you pick orders from. ":"")+(!hasMin?"Then on the Stock tab open an item, tap Edit item and set a picking minimum.":"")+"</p>";
+ else if(!f.length)h+='<p class="m" style="display:block;margin:6px 0">Picking warehouses are fine right now.</p>';
+ var g=vgroup(f);
+ Object.keys(g).sort(function(x,y){return nat(P(x).name,P(y).name)}).forEach(function(pid){
+  h+='<div style="margin-top:10px"><b>'+esc(P(pid).name)+'</b>'+vsort(g[pid]).map(function(x){
+   return'<div class="sz" style="margin-left:0"><span>'+esc(x.v.colour||"n/a")+" · "+esc(x.v.size||"n/a")+'</span> <span class="m" style="display:inline;border:1px solid var(--bd);border-radius:8px;padding:0 6px;margin-right:4px">pending</span><b style="color:var(--bad)">'+(x.q<=0?"none in picking":x.q+" ctn in picking")+'</b> <span class="m" style="display:inline">(min '+x.v.pickmin+(x.v.pickmax?", max "+x.v.pickmax:"")+")</span>"+(x.h.length?'<div style="margin:2px 0">'+bsInto(x)+"</div>":"")+(x.need&&x.h.length?'<div style="margin:2px 0"><b>Bring '+x.bring+'</b>'+(x.bring<x.need?' <span class="m" style="display:inline">(all holding has; '+x.need+' to fill)</span>':"")+"</div>":"")+
+   (x.h.length?x.h.map(function(y){var k=bsk(x.v.id,y.loc),b=bsg(x.v.id,y.loc,y.mv);return'<div style="margin:4px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><input type="checkbox" style="width:auto;margin:0" '+(b.on?"checked":"")+' onchange="bsOn(\''+k+'\',this.checked)"><span>'+esc(LN(y.loc))+": "+y.q+' ctn available</span><span>move</span><input type="number" inputmode="numeric" min="0" max="'+y.q+'" value="'+b.q+'" style="width:84px;margin:0" onchange="bsQ(\''+k+'\',this.value)"></div>'}).join(""):'<div class="m" style="display:block">Nothing in holding — needs reordering</div>')+"</div>"}).join("")+"</div>"});
+ if(f.length&&anyPick){var pl=bsPlan(),pls=S.locs.filter(function(x){return x.on&&x.role=="picking"}),dd=bsDest();
+  h+='<div style="margin-top:12px">'+(pls.length>1?'<label>Default warehouse for items with no stock in picking yet</label><select onchange="bsSetDest(this.value)" style="margin-bottom:8px">'+pls.map(function(x){return'<option value="'+x.id+'"'+(dd&&dd.id==x.id?" selected":"")+">"+esc(x.name)+"</option>"}).join("")+"</select>":"")+
+  '<button class="btn" '+(pl.ctn?"":"disabled style=\"opacity:.5\"")+' onclick="bsRun()">Record '+pl.ctn+' ctn moved'+(pl.ctn&&Object.keys(pl.dests).length==1?" into "+esc(Object.keys(pl.dests)[0]):"")+'</button><button class="btn" style="background:var(--card);color:var(--fg);border:1px solid var(--bd)" onclick="reqPdf()">🖨 Stock request PDF (to print)</button><p class="m" style="display:block">Pending until you record it. Tick what you physically moved, adjust the cartons if needed, then record. Lots are taken blank/oldest first.</p></div>'}
+ h+='<div style="margin-top:14px"><b>Needs reordering</b></div>';
+ if(!a.length)h+='<p class="m" style="display:block;margin:6px 0">'+(S.vars.some(function(v){return v.reorder>0})?"Nothing to reorder right now.":"No reorder levels set yet. On the Stock tab, open an item, tap Edit item, and set a reorder level.")+"</p>";
+ var g2=vgroup(a);
+ Object.keys(g2).sort(function(x,y){return nat(P(x).name,P(y).name)}).forEach(function(pid){
+  h+='<div style="margin-top:10px"><b>'+esc(P(pid).name)+'</b>'+vsort(g2[pid]).map(function(x){
+   return'<div class="sz" style="margin-left:0"><span>'+esc(x.v.colour||"n/a")+" · "+esc(x.v.size||"n/a")+'</span> <b style="color:var(--bad)">'+(x.q<=0?"out of stock":x.q+" ctn left")+'</b> <span class="m" style="display:inline">(reorder at '+x.v.reorder+")</span></div>"}).join("")+"</div>"});
+ return h+"</div>"}
+function bellRender(){var n=bellCount(),b=$("bb"),bt=$("bn-notif"),p=$("bellp");
+ if(b){b.textContent=n>99?"99+":n;b.style.display=n?"block":"none"}if(bt)bt.classList.toggle("alert",n>0);
+ if(p){var ae=document.activeElement;if(ae&&(ae.tagName=="INPUT"||ae.tagName=="SELECT")&&p.contains(ae))return;p.innerHTML=bellHtml()}}
+function dscSel(vs){var n=vs.length,d=vs.filter(function(v){return v.disc}).length,cur=!n||d==0?"0":d==n?"1":"";
+ return'<label>Status</label><select id="edc">'+(cur===""?'<option value="" selected>Mixed (no change)</option>':"")+'<option value="0"'+(cur=="0"?" selected":"")+'>Active</option><option value="1"'+(cur=="1"?" selected":"")+'>Discontinued (not reordered, never highlighted, still listed)</option></select>'}
+// carton contents as typed ('24 doz', '24x6 rolls'); older entries only have a piece count
+function vpk(v){return v?(v.pack||(v.ppc?v.ppc+" pcs":"")):""}
+/* Per carton on Receive follows what this colour/size already holds: exact colour+size, then the same colour (or same size,
+   for items grouped by size) most recently received, then the item's last value. Never overwrites what you typed. */
+var PPCAUTO=true;
+function ppcAuto(){var e=$("ppc");if(!e||!PPCAUTO)return;var pid=curP();if(!pid||!P(pid))return;var p=P(pid),col=$("col").value.trim().toLowerCase(),sz=$("sz").value.trim().toLowerCase(),
+ vs=S.vars.filter(function(v){return v.prod==pid&&vpk(v)}),last={};S.mv.forEach(function(m){if(m.type=="receive"&&!m.rv&&(!last[m.v]||m.ts>last[m.v]))last[m.v]=m.ts});
+ function newest(l){return l.sort(function(a,b){return(last[b.id]||"")>(last[a.id]||"")?1:-1})[0]}
+ var f=p.grp=="size"?["size",sz]:["colour",col],x=vs.find(function(v){return(v.colour||"").toLowerCase()==col&&(v.size||"").toLowerCase()==sz})||(f[1]&&newest(vs.filter(function(v){return(v[f[0]]||"").toLowerCase()==f[1]})));
+ e.value=x?vpk(x):ppk(p)}
+function ppk(p){return p?(p.pack||(p.ppc?p.ppc+" pcs":"")):""}
+var PKHINT='e.g. 24 doz, 24x6 rolls, 60';
+function ppcIn(vs,p){var r=uniq(vs.map(vpk));
+ return'<label>Per carton (blank = keep, 0 = clear)</label><input id="evp" autocomplete="off"'+(r.length==1&&r[0]?' value="'+esc(r[0])+'"':r.length>1?' placeholder="mixed (leave blank to keep)"':(ppk(p)?' placeholder="item default: '+esc(ppk(p))+'"':' placeholder="'+PKHINT+'"'))+'>'}
+function roAttr(pid,key,col,siz){key=key||"reorder";var rv=S.vars.filter(function(v){return v.prod==pid&&(col===undefined||(v.colour||"")==col)&&(siz===undefined||(v.size||"")==siz)}).map(function(v){return v[key]||0});
+ return rv.length&&rv.every(function(x){return x==rv[0]})?' value="'+rv[0]+'"':' placeholder="mixed (leave blank to keep)"'}
+/* ---------- edit item / colour / size (online only) ---------- */
+function edt(k){ED=k;$("res").innerHTML=stockHtml()}
+function edf(inner){var pd=edK();return'<div class="sub" style="display:block">'+inner+'<div style="margin-top:8px"><button class="sm" onclick="saveE()">Save</button> <button class="sm" onclick="edt(null)">Cancel</button>'+(pd&&pd.p.pend?' <button class="sm" style="color:var(--bad);border-color:var(--bad)" onclick="delE()">Delete</button>':"")+"</div></div>"}
+/* the open edit form as {p, body, what}: body picks the lines (none = whole item) for /api/product/{id}/delete */
+function edK(){var k=ED;if(!k)return null;var t=k[0],i=k.indexOf("|"),id=+(i<0?k.slice(1):k.slice(1,i)),p=P(id);if(!p)return null;var r=k.slice(i+1);
+ if(t=="p")return{p:p,body:{},what:p.name+" and everything set up under it"};
+ if(t=="c")return{p:p,body:{colour:r},what:"colour "+(r||"n/a")+" (every size) of "+p.name};
+ if(t=="z")return{p:p,body:{size:r},what:"size "+(r||"n/a")+" (every colour) of "+p.name};
+ var j=r.indexOf("|"),c=r.slice(0,j),z=r.slice(j+1);return{p:p,body:{colour:c,size:z},what:(c||"n/a")+" · "+(z||"n/a")+" of "+p.name}}
+function delE(){var d=edK();if(!d)return;if(d.p.id<0)return fail("This item hasn’t synced yet.");
+ var last=!Object.keys(d.body).length||S.vars.filter(function(v){return v.prod==d.p.id}).every(function(v){return(!("colour" in d.body)||(v.colour||"")==d.body.colour)&&(!("size" in d.body)||(v.size||"")==d.body.size)});
+ if(!confirm("Delete "+d.what+"? It was never received, so no stock or history is lost."+(last&&Object.keys(d.body).length?" It’s the item’s last line, so the item goes too.":"")))return;
+ call(function(){return post("/api/product/"+d.p.id+"/delete",d.body)},last?"Deleted "+d.p.name+".":"Deleted "+d.what+".")}
+function saveE(){var k=ED;if(!k)return;var t=k[0],i=k.indexOf("|"),id=+(i<0?k.slice(1):k.slice(1,i));
+ if(id<0)return fail("This item hasn’t synced yet. Wait for “pending” to clear, then edit.");
+ if(t=="p"){var nm=$("en").value.trim();if(!nm)return fail("Please enter an item name.",["en"]);
+  var lv=$("er").value.trim(),lp=$("ep2").value.trim(),lx=$("ep3").value.trim();
+  var nb=[["er",lv],["ep2",lp],["ep3",lx]].filter(function(x){return x[1]!==""&&!(/^\d{1,6}$/.test(x[1]))});if(nb.length)return fail("Levels must be whole numbers of 0 or more (no decimals). Nothing was saved.",nb.map(function(x){return x[0]}));
+  if(nm.length>120||$("ea").value.trim().length>120||$("ep").value.trim().length>40)return fail("Too long: item and internal name up to 120 characters, per carton up to 40. Nothing was saved.",["en"]);
+  if(lp!==""&&lx!==""&&(parseInt(lx,10)||0)>0&&(parseInt(lx,10)||0)<(parseInt(lp,10)||0))return fail("The picking maximum can’t be lower than the picking minimum.",["ep3"]);
+  var ldp=$("edc")?$("edc").value:"";
+  return call(async function(){await post("/api/product/"+id,{name:nm,alias:$("ea").value.trim(),pack:$("ep").value.trim(),pick_loc:$("epl").value==="0"&&P(id).pickloc&&!S.locs.some(function(l){return l.id==P(id).pickloc&&l.on&&l.role=="picking"})?undefined:+$("epl").value||0,group_by:$("egp").value,category:$("ecat").value.trim(),colour_photos:$("ecp").value=="1"});
+   if(lv!=="")await post("/api/reorder",{product_id:id,level:parseInt(lv,10)||0});
+   if(lp!=="")await post("/api/reorder",{product_id:id,level:parseInt(lp,10)||0,field:"pick_min"});
+   if(lx!=="")await post("/api/reorder",{product_id:id,level:parseInt(lx,10)||0,field:"pick_max"});
+   if(ldp!=="")await post("/api/reorder",{product_id:id,level:+ldp,field:"discontinued"})},"Item updated.")}
+ var rest=k.slice(i+1),nv=$("ev").value.trim(),col=rest,sz="";if(t=="s"){var j=rest.indexOf("|");col=rest.slice(0,j);sz=rest.slice(j+1)}if(t=="z"){sz=rest;col=""}
+ if(t=="c"){O["c"+id+"|"+nv]=O["c"+id+"|"+col]}if(t=="z"){O["z"+id+"|"+nv]=O["z"+id+"|"+sz]}
+ var sw=(P(id)||{}).grp=="size",rn,tgt;
+ if(t=="c"){rn={kind:"colour",colour:col,old:col};tgt={colour:nv}}else if(t=="z"){rn={kind:"size",old:sz};tgt={size:nv}}else if(sw){rn={kind:"colour",old:col};tgt={colour:nv,size:sz}}else{rn={kind:"size",colour:col,old:sz};tgt={colour:col,size:nv}}
+ rn.product_id=id;rn["new"]=nv;
+ var lv=$("er")?$("er").value.trim():"",lp=$("ep2")?$("ep2").value.trim():"",lx=$("ep3")?$("ep3").value.trim():"",lpp=$("evp")?$("evp").value.trim():"",ldc=$("edc")?$("edc").value:"",was=t=="c"?col:t=="z"?sz:(sw?col:sz);
+ if(lp!==""&&lx!==""&&(parseInt(lx,10)||0)>0&&(parseInt(lx,10)||0)<(parseInt(lp,10)||0))return fail("The picking maximum can’t be lower than the picking minimum.",["ep3"]);
+ call(async function(){if(nv!==was)await post("/api/rename",rn);  // nothing to rename (e.g. an n/a colour): just save the levels
+  if(lv!=="")await post("/api/reorder",Object.assign({product_id:id,level:parseInt(lv,10)||0},tgt));
+  if(lp!=="")await post("/api/reorder",Object.assign({product_id:id,level:parseInt(lp,10)||0,field:"pick_min"},tgt));
+  if(lx!=="")await post("/api/reorder",Object.assign({product_id:id,level:parseInt(lx,10)||0,field:"pick_max"},tgt));
+  if(lpp!=="")await post("/api/reorder",Object.assign({product_id:id,level:lpp,field:"pack"},tgt));
+  if(ldc!=="")await post("/api/reorder",Object.assign({product_id:id,level:+ldc,field:"discontinued"},tgt))},nv===was?"Saved.":(t=="c"||(t=="s"&&sw)?"Colour":"Size")+" renamed (matching names are merged).")}
+/* ---------- receive ---------- */
+function cb(){var q=$("nm").value.trim().toLowerCase(),l=S.prods.filter(function(p){return!q||(p.name+" "+(p.alias||"")).toLowerCase().indexOf(q)>-1}).slice(0,8);
+ $("cbl").innerHTML=l.map(function(p){return'<div class="opt" onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="pickP('+p.id+')">'+esc(p.name)+(p.pend?' <span class="m" style="display:inline">· pending</span>':"")+(p.alias?' <span class="m" style="display:inline">· '+esc(p.alias)+'</span>':'')+'</div>'}).join("")}
+function hideCb(){setTimeout(function(){var e=$("cbl");if(e)e.innerHTML=""},400)}
+function typed(){PSEL=null;cb();chips();secAuto()}
+function byName(n){n=String(n||"").trim().toLowerCase();if(!n)return null;return S.prods.find(function(x){return x.name.toLowerCase()==n})||S.prods.find(function(x){return(x.alias||"").toLowerCase()==n})||null}
+function curP(){if(PSEL&&P(PSEL))return PSEL;PSEL=null;var p=byName($("nm")?$("nm").value:"");return p?p.id:null}
+function chips(only){if(!$("cc"))return;ppcAuto();cphDraw();var pid=curP(),sw=pid&&(P(pid)||{}).grp=="size";$("wc").style.order=sw?2:1;$("wz").style.order=sw?1:2;
+ var vs=pid?S.vars.filter(function(v){return v.prod==pid}):[];
+ [["cc","col","colour"],["sc","sz","size"],["lc","lot","lot"]].forEach(function(a){if(only&&only!=a[1])return;var inp=$(a[1]),box=$(a[0]);
+  if(!inp||!box)return;if(document.activeElement!==inp||(!pid&&a[1]!="col")){box.innerHTML="";return}
+  var cu=inp.value.trim(),lc=cu.toLowerCase(),ids={};vs.forEach(function(v){ids[v.id]=1});
+  var o=a[1]=="lot"?uniq(S.mv.filter(function(m){return ids[m.v]&&m.lot}).map(function(m){return m.lot})).sort(nat):uniq(vs.map(function(v){return v[a[2]]}).filter(Boolean)).sort(dimCmp(a[2]));
+  if(a[1]=="col"){var lib=uniq(S.vars.map(function(v){return v.colour}).filter(Boolean)).sort(nat);o=o.concat(lib.filter(function(x){return o.indexOf(x)<0&&(!pid||lc)}))}
+  var
+   m=o.filter(function(x){return!lc||x.toLowerCase().indexOf(lc)>-1}).sort(function(x,y){return(y.toLowerCase().indexOf(lc)==0)-(x.toLowerCase().indexOf(lc)==0)}),
+   exact=o.some(function(x){return x.toLowerCase()==lc});
+  box.innerHTML=(m.length||(cu&&!exact)?'<div class="sg">'+m.map(function(x){return'<div class="opt" data-f="'+a[1]+'" data-v="'+esc(x)+'" onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="pickF(this)">'+(a[1]=="col"&&pid&&(P(pid)||{}).cp&&cphU(pid,x)?'<img class="th" style="width:34px;height:34px;margin-right:8px;vertical-align:middle" src="'+esc(cphU(pid,x))+'">':"")+esc(x)+"</div>"}).join("")+(cu&&!exact?'<div class="opt add" data-f="'+a[1]+'" data-v="'+esc(cu)+'" onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="pickF(this)">+ Add “'+esc(cu)+'”</div>':"")+"</div>":"")})}
+var GHOST=0;document.addEventListener("click",function(e){if(Date.now()-GHOST<300&&!(e.target.closest&&e.target.closest(".opt,.ln"))){e.preventDefault();e.stopPropagation()}},true);
+function hideSg(k){setTimeout(function(){var b=$({col:"cc",sz:"sc",lot:"lc"}[k]);if(b&&document.activeElement!==$(k))b.innerHTML=""},400)}
+function pickF(b){GHOST=Date.now();var k=b.dataset.f,o=k=="col"?"sz":"col";$(k).value=b.dataset.v;ppcAuto();cphDraw();$({col:"cc",sz:"sc",lot:"lc"}[k]).innerHTML="";
+ if(k=="lot"){moreSum();return}
+ var other=$(o),has=S.vars.some(function(v){return v.prod==curP()&&v[o=="col"?"colour":"size"]});
+ if(!other.value.trim()&&has)other.focus();else $("q").focus()}
+function moreSum(){var e=$("mores");if(!e)return;var f=[["al","internal name"],["lot","lot"],["note","note"]].filter(function(a){return $(a[0])&&$(a[0]).value.trim()}).map(function(a){return a[1]});if(PH||PHF)f.push("photo");e.textContent="More details"+(f.length?" · "+f.join(", "):" (optional)")}
+function pickP(id){GHOST=Date.now();var p=P(id);PSEL=id;$("nm").value=p.name;$("al").value=p.alias||"";PPCAUTO=true;$("cbl").innerHTML="";chips();moreSum();secAuto()}
+var RM="";
+function rmLbl(){if(PREP)return{"":"Save as pending item",more:"Save as pending, then add another",colour:"Set up many colours…",size:"Set up many sizes…"}[RM];return{"":"Receive",more:"Save, then add another",colour:"Enter many colours…",size:"Enter many sizes…"}[RM]}
+function rbUpd(){if($("rmode"))$("rmode").value=RM;if($("rgo"))$("rgo").textContent=rmLbl()}
+function setRm(v){RM=v||"";rbUpd()}
+function rcvGo(){phWait(function(){if(RM=="colour"||RM=="size")return gridOpen(RM);if(PREP)return prepSave(RM=="more");if(RM=="more")return addMore();receive()})}
+/* cartons received accepts sums like 32+34+36; evaluated on Enter, leaving the field, or saving */
+function calc(t){t=String(t).replace(/[x×X]/g,"*").replace(/\s+/g,"");if(!t||!/^[0-9.+\-*\/()]+$/.test(t))return NaN;var i=0;
+ function num(){var j=i,d=0;while(i<t.length&&((t[i]>="0"&&t[i]<="9")||(t[i]=="."&&!d++)))i++;if(j==i||t.slice(j,i)==".")throw 0;return +t.slice(j,i)}
+ function fac(){var c=t[i];if(c=="-"){i++;return-fac()}if(c=="+"){i++;return fac()}if(c=="("){i++;var v=add();if(t[i]!=")")throw 0;i++;return v}return num()}
+ function mul(){var v=fac();while(t[i]=="*"||t[i]=="/"){var o=t[i++],w=fac();v=o=="*"?v*w:v/w}return v}
+ function add(){var v=mul();while(t[i]=="+"||t[i]=="-"){var o=t[i++],w=mul();v=o=="+"?v+w:v-w}return v}
+ try{var v=add();return i==t.length&&isFinite(v)?v:NaN}catch(e){return NaN}}
+/* value of a sum field: a number >= 0, rounded down to whole cartons, or NaN (field turns red) */
+function qVal(e){var t=e.value.trim().replace(/[+\-*\/x×]+$/,"");if(!t)return NaN;var v=calc(t);if(isNaN(v)||v<0)return NaN;return Math.floor(v+1e-9)}
+function qFix(e){e=e||$("q");if(!e||!e.value.trim())return;var v=qVal(e);if(isNaN(v)||(v==0&&calc(e.value.trim().replace(/[+\-*\/x×]+$/,""))>0)){e.classList.add("bad");return}e.value=v;e.classList.remove("bad")}
+function qOp(o,e){if(!e)return;e.value=e.value.replace(/[+\-*\/x×\s]+$/,"")+o;e.classList.remove("bad");e.focus()}
+/* + and − sit right next to the row being typed in */
+function gFocus(e){GF=e;var b=$("gops");if(!b){b=document.createElement("span");b.id="gops";b.style.cssText="display:flex;gap:6px;flex:none";
+  b.innerHTML='<button class="sm" type="button" style="width:40px;height:40px;padding:0;font-size:20px" aria-label="Plus" onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="gOp(\'+\')">+</button><button class="sm" type="button" style="width:40px;height:40px;padding:0;font-size:20px" aria-label="Minus" onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="gOp(\'-\')">−</button>'}
+ var slot=e.nextElementSibling;if(slot&&b.parentNode!==slot)slot.appendChild(b)}
+function gLib(){G.lib=!G.lib;try{localStorage.setItem("glib",G.lib?"1":"0")}catch(e){}gridDraw()}
+function gOp(o){var e=GF||[].find.call(document.querySelectorAll("#gov .gq"),function(x){return!x.value.trim()});qOp(o,e);if(e){var i=[].indexOf.call(document.querySelectorAll("#gov .gq"),e);if(G.rows[i])G.rows[i].q=e.value;gridCnt()}}
+var GF=null;
+var ADDED=[];
+function rcvGet(need,blankZero){var q0=$("q").value.trim(),raw=calc(q0.replace(/[+\-*\/x×]+$/,"")),nm=$("nm").value.trim(),al=$("al").value.trim(),col=$("col").value.trim(),sz=$("sz").value.trim(),c=(qFix(),$("q").value.trim()?qVal($("q")):NaN),pk=$("ppc").value.trim(),loc=+$("loc").value,lot=$("lot").value.trim();
+ if(blankZero&&isNaN(c)&&!$("q").value.trim())c=0;
+ var miss=[],mi=[];if(!nm){miss.push("item name");mi.push("nm")}if(need=="colour"&&!col){miss.push("colour");mi.push("col")}if(need=="size"&&!sz){miss.push("size");mi.push("sz")}if(isNaN(c)&&$("q").value.trim()){fail("Cartons received: "+$("q").value.trim()+" doesn’t work out to a whole number of 0 or more. Nothing was saved.",["q"]);return null}if(isNaN(c)||c<0){miss.push("cartons received (0 is fine)");mi.push("q")}
+ if(miss.length){fail("Please double-check: "+miss.join(" and ")+" missing. Nothing was saved and everything else you typed is kept.",mi);return null}
+ if(c==0&&raw>0){fail("Cartons received: "+q0+" is less than 1 carton. Enter whole cartons. Nothing was saved.",["q"]);return null}
+ if(limBad({product:nm,alias:al,colour:col,size:sz,lot:lot,pack:pk,note:$("note").value,qty:c}))return null;
+ var pr=PSEL&&P(PSEL)?P(PSEL):byName(nm);
+ var sec=secOf(loc);if(sec===null)return null;
+ return{name:pr?pr.name:nm,alias:al,pack:pk,col:col,sz:sz,lot:lot,loc:loc,qty:c,sec:sec}}
+function rcvQueue(r){setLoc(r.loc);queue({kind:"receive",product:r.name,alias:r.alias,pack:r.pack,colour:r.col,size:r.sz,lot:r.lot,loc:r.loc,qty:r.qty,section:r.sec||0,note:$("note").value});
+ if(CPHP&&r.col&&CPHP.c.toLowerCase()==r.col.toLowerCase()&&CPHP.n.toLowerCase()==r.name.toLowerCase())queue({kind:"photo",product:r.name,colour:r.col,data:CPHP.d});CPHP=null;
+ if(PH){queue({kind:"photo",product:r.name,data:PH});PH=null}}
+function receive(){var r=rcvGet(false);if(!r)return;rcvQueue(r);RM="";var more=ADDED.length?" Plus "+ADDED.length+" saved earlier in this batch.":"";ADDED=[];
+ PSEL=null;if(r.qty==0)return done("Registered "+r.name+(r.col?" · "+r.col:"")+(r.sz?" · "+r.sz:"")+" with 0 cartons. It now shows on the Stock tab as 0. (If it already had stock, use Recount on Sale/Adjust instead.)"+more);done("Received "+r.qty+" cartons of "+r.name+(r.col?" · "+r.col:"")+(r.sz?" · "+r.sz:"")+(r.lot?" (lot "+r.lot+")":" (no lot)")+"."+more)}
+function addMore(){if(!$("col").value.trim()&&!$("sz").value.trim()&&!$("q").value.trim()&&(ADDED.length||curP()))return fail("Nothing to save: colour, size and cartons are empty. When you’re done, switch “Receiving several?” back to “No, just this one”.",["col"]);var r=rcvGet(false,true);if(!r)return;rcvQueue(r);ADDED.push([r.col,r.sz].filter(Boolean).join(" ")+" "+r.qty);
+ $("col").value="";$("sz").value="";$("q").value="";if($("pv")){$("pv").style.display="none";$("pv").removeAttribute("src")}if($("rdph"))$("rdph").style.display="none";PHF=null;
+ var t="Saved "+r.name+(r.col?" · "+r.col:"")+(r.sz?" · "+r.sz:"")+": "+r.qty+" ("+ADDED.length+" this batch). Next one: colour, size and cartons. Switch the dropdown back to “No, just this one” for the last one.";okMsg(t);document.querySelectorAll(".bad").forEach(function(e){e.classList.remove("bad")});
+ chips();moreSum();var f=$("col");f.scrollIntoView({block:"center"});f.focus()}
+/* ---------- many colours at once ---------- */
+var G=null;
+function vtot(pid,c,z){var v=pid&&findV(pid,c,z);if(!v)return 0;return S.mv.reduce(function(t,m){return m.v==v.id?t+m.qty:t},0)}
+function gridOpen(by){by=by=="size"?"size":"colour";var nm=$("nm").value.trim();if(!nm)return fail("Enter the item name first.",["nm"]);var gsec=PREP?0:secOf(+$("loc").value);if(gsec===null)return;
+ var pr=PSEL?P(PSEL):S.prods.find(function(x){return x.name.toLowerCase()==nm.toLowerCase()||(x.alias||"").toLowerCase()==nm.toLowerCase()}),pid=pr?pr.id:null;
+ /* receiving lists every size (colour) the item has, ready for quantities (blank = skip). Setting up has no quantities:
+    every row is set up, so list only what this colour (size) already has, or it would add e.g. a no-colour line to each
+    existing size. The item's other sizes (colours) are still one tap away in the library. */
+ var fx=(by=="size"?$("col"):$("sz")).value.trim().toLowerCase(),ofx=by=="size"?"colour":"size";
+ var have=pid?uniq(S.vars.filter(function(v){return v.prod==pid&&(!PREP||(v[ofx]||"").toLowerCase()==fx)}).map(function(v){return v[by]}).filter(Boolean)).sort(dimCmp(by)):[];
+ G={pid:pid,name:pr?pr.name:nm,alias:$("al").value.trim(),pack:$("ppc").value.trim(),by:by,col:$("col").value.trim(),sz:$("sz").value.trim(),loc:+$("loc").value,sec:gsec,prep:PREP,lot:$("lot").value.trim(),note:$("note").value,rows:have.map(function(c){return{c:c,q:""}}),err:"",lib:(function(){try{return localStorage.getItem("glib")=="1"}catch(e){return false}})()};
+ gridDraw()}
+function gridDraw(){GF=null;var o=$("gov");if(!o){o=document.createElement("div");o.id="gov";document.body.appendChild(o)}
+ var used={};G.rows.forEach(function(r){used[r.c.toLowerCase()]=1});
+ var sz=G.by=="size",nn=sz?"size":"colour",fx=sz?G.col:G.sz,lib=uniq(S.vars.map(function(v){return v[nn]}).filter(Boolean)).sort(dimCmp(nn)).filter(function(c){return!used[c.toLowerCase()]});
+ o.innerHTML='<div class="ghd"><div><b>'+esc(G.name)+'</b><div class="m" style="display:block">'+(sz?(G.col?"Colour "+esc(G.col):"No colour"):(G.sz?"Size "+esc(G.sz):"No size"))+(G.prep?" · pending item, no stock":" · into "+esc(LN(G.loc)))+(G.sec?" · section "+esc(SNAME(G.loc,G.sec)):"")+(G.lot?" · lot "+esc(G.lot):"")+'</div></div><button class="sm" onclick="gridClose()">Cancel</button></div>'+
+  '<div class="gbd"><div class="m" style="display:block;margin-bottom:8px">'+(G.prep?"Add the "+nn+"s to set up. Nothing is received; stock goes in later on Receive.":"Blank = skip. 0 = register at zero stock. Sums work: 32+34+36.")+'</div>'+(G.err?'<div class="msg err">'+esc(G.err)+"</div>":"")+
+  G.rows.map(function(r,i){var t=sz?vtot(G.pid,G.col,r.c):vtot(G.pid,r.c,G.sz);return'<div class="gr"><span>'+(!sz&&G.pid&&(P(G.pid)||{}).cp?(r.ph||cphU(G.pid,r.c)?'<img class="th" style="width:40px;height:40px;margin-right:8px;vertical-align:middle" src="'+esc(r.ph||cphU(G.pid,r.c))+'" data-i="'+i+'" onclick="gPh(+this.dataset.i)">':'<button class="ph" style="margin-right:8px" data-i="'+i+'" onclick="gPh(+this.dataset.i)">📷</button>'):"")+'<span style="display:inline-block;vertical-align:middle">'+esc(r.c)+(t?' <span class="m" style="display:inline">· has '+t+"</span>":"")+'</span></span>'+(G.prep?'<span class="m" style="display:inline;white-space:nowrap">'+(gExists(r.c)?"already set up":"new, will be set up")+"</span></div>":'<input class="gq" type="text" inputmode="numeric" autocomplete="off" enterkeyhint="next" value="'+esc(r.q)+'" onfocus="gFocus(this)" oninput="G.rows['+i+'].q=this.value;gridCnt()" onchange="qFix(this);G.rows['+i+'].q=this.value;gridCnt()" onkeydown="gridKey(event,'+i+')"><span class="gslot" style="width:86px;flex:none;display:flex"></span></div>')}).join("")+
+  '<div style="margin:10px 0"><button class="sm" onclick="gridZero()">Fill empty with 0</button></div>'+
+  (lib.length?'<button class="sm" style="width:100%;text-align:left;margin-bottom:8px" onclick="gLib()">'+(G.lib?"▾":"▸")+" Add from "+nn+" library ("+lib.length+")</button>":"")+
+  (G.lib&&lib.length?'<div class="chips" style="margin-bottom:10px">'+lib.map(function(c){return'<button class="chip" data-c="'+esc(c)+'" onclick="gridAdd(this.dataset.c)">+ '+esc(c)+"</button>"}).join("")+"</div>":"")+
+  '<label>New '+nn+'</label><div class="inl"><input id="gnew" autocomplete="off" placeholder="Type a new '+nn+'" oninput="gridCnt()" onkeydown="if(event.key==\'Enter\'){event.preventDefault();gridAdd(this.value)}"><button class="sm" style="height:46px" onclick="gridAdd($(\'gnew\').value)">Add</button></div></div>'+
+  '<div class="gft"><button class="btn" id="gsave" onclick="gridSave()">Save</button></div>';gridCnt()}
+function gNew(){var e=$("gnew"),c=e?e.value.trim():"";return c&&!G.rows.some(function(r){return r.c.toLowerCase()==c.toLowerCase()})?c:""}
+function gridCnt(){var b=$("gsave");if(!b)return;if(G.prep){var k=G.rows.filter(function(r){return!gExists(r.c)}).length+(gNew()&&!gExists(gNew())?1:0),nn=G.by=="size"?"size":"colour";b.textContent=k?"Set up "+k+" "+nn+(k>1?"s":""):"Nothing new to set up";b.disabled=!k;return}var n=G.rows.filter(function(r){return r.q!==""}).length;b.textContent=n?"Save "+n+" "+(G.by=="size"?"size":"colour")+(n>1?"s":""):"Save";b.disabled=!n}
+function gridKey(e,i){if(e.key!="Enter")return;e.preventDefault();var l=document.querySelectorAll("#gov .gq");qFix(e.target);G.rows[i].q=e.target.value;gridCnt();if(l[i+1])l[i+1].focus();else e.target.blur()}
+function gridAdd(c){c=(c||"").trim();if(!c)return;var ex=G.rows.find(function(r){return r.c.toLowerCase()==c.toLowerCase()});if(!ex){ex={c:c,q:""};G.rows.push(ex);G.rows.sort(function(a,b){return dimCmp(G.by)(a.c,b.c)})}gridDraw();var i=G.rows.indexOf(ex),l=document.querySelectorAll("#gov .gq");if(l[i]){l[i].scrollIntoView({block:"center"});l[i].focus()}}
+function gridZero(){G.rows.forEach(function(r){if(r.q==="")r.q="0"});gridDraw()}
+function gridClose(){G=null;var o=$("gov");if(o)o.remove();if(window.ovLock)ovLock()}
+function gridSave(){if(PHBUSY){PHWQ=function(){if(G)gridSave()};G.err="Preparing a photo… this saves as soon as it’s ready.";return gridDraw()}if(G.prep)return gridPrep();document.querySelectorAll("#gov .gq").forEach(function(e,i){qFix(e);if(G.rows[i])G.rows[i].q=e.value});var bad=G.rows.filter(function(r){return r.q!==""&&!/^\d+$/.test(String(r.q).trim())});if(bad.length){G.err="Use whole numbers only: "+bad.map(function(r){return r.c}).join(", ")+".";return gridDraw()}
+ var big=G.rows.filter(function(r){return r.q!==""&&+r.q>MAXQ||String(r.c).length>80});if(big.length){G.err="Please check: "+big.map(function(r){return r.c.slice(0,30)}).join(", ")+" (more than "+MAXQ+" cartons, or a name longer than 80 characters). Nothing was saved.";return gridDraw()}
+ var gl=[["product",G.name],["alias",G.alias],["pack",G.pack],["lot",G.lot],["note",G.note],[G.by=="size"?"colour":"size",G.by=="size"?G.col:G.sz]].filter(function(x){return String(x[1]||"").length>LIM[x[0]][0]})[0];if(gl){G.err=LIM[gl[0]][1]+" is too long (the most is "+LIM[gl[0]][0]+" characters). Nothing was saved.";return gridDraw()}
+ var use=G.rows.filter(function(r){return r.q!==""}),skip=G.rows.length-use.length,g=G;if(!use.length)return;
+ setLoc(g.loc);use.forEach(function(r){queue({kind:"receive",product:g.name,alias:g.alias,pack:g.pack,colour:g.by=="size"?g.col:r.c,size:g.by=="size"?r.c:g.sz,lot:g.lot,loc:g.loc,section:g.sec||0,qty:parseInt(r.q,10),note:g.note})});
+ if(PH){queue({kind:"photo",product:g.name,data:PH});PH=null}
+ if(g.by!="size")g.rows.forEach(function(r){if(r.ph&&(use.indexOf(r)>-1||gExists(r.c)))queue({kind:"photo",product:g.name,colour:r.c,data:r.ph})});
+ RM="";var zero=use.filter(function(r){return parseInt(r.q,10)==0}).length;gridClose();PSEL=null;ADDED=[];
+ done("Saved "+use.length+" "+(g.by=="size"?"size":"colour")+(use.length>1?"s":"")+" of "+g.name+(g.by=="size"?(g.col?" · "+g.col:""):(g.sz?" · "+g.sz:""))+" into "+LN(g.loc)+(zero?" ("+zero+" at zero)":"")+(skip?", "+skip+" skipped":"")+".")}
+/* ---------- read photo / packing list ---------- */
+function toBlob(f,cb){var r=new FileReader();r.onload=function(){var im=new Image();im.onload=function(){var s=Math.min(1,1568/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){cb(b)},"image/jpeg",0.85)};im.onerror=function(){cb(null)};im.src=r.result};r.readAsDataURL(f)}
+function fillOne(it){var n=(it.name||"").trim();$("nm").value=n;var p=n&&S.prods.find(function(x){return x.name.toLowerCase()==n.toLowerCase()||(x.alias||"").toLowerCase()==n.toLowerCase()});if(p)pickP(p.id);else PSEL=null;
+ $("col").value=it.colour||"";$("sz").value=it.size||"";$("lot").value=it.lot||"";if(it.pcs_per_carton){$("ppc").value=it.pcs_per_carton;PPCAUTO=false}chips();moreSum();
+ ["nm","col","sz","lot","ppc"].forEach(function(i){var e=$(i);if(e&&e.value)e.classList.add("chk")})}
+/* Photo reading with visible progress: real steps (prepare, upload %, Claude reading), seconds counter, cancel, clear errors. */
+var SC=null;
+function scanTxt(){if(!SC||SC.err)return"";var s=Math.round((Date.now()-SC.t0)/1000);return(SC.step=="prep"?"Preparing the image…":SC.step=="up"?"Sending the photo… "+SC.pct+"%":"Claude is reading it…")+" "+s+"s"+(s>25?" · taking longer than usual (gives up at 60s)":"")}
+function scanBar(){var e=$("scanbar");if(!e)return;if(!SC){e.innerHTML="";return}
+ if(SC.err){e.innerHTML='<div class="msg err">'+esc(SC.err)+'<div style="margin-top:8px"><button class="sm" onclick="scan()">Try again</button> <button class="sm" onclick="SC=null;scanBar()">Dismiss</button></div></div>';return}
+ e.innerHTML='<div class="msg" style="background:var(--card);border:1px solid var(--bd);color:var(--fg);display:flex;gap:10px;align-items:center"><span class="spin"></span><span class="grow" id="sct">'+esc(scanTxt())+'</span><button class="sm" onclick="scanCancel()">Cancel</button></div>'}
+function scanTick(){var e=$("sct");if(e&&SC&&!SC.err)e.textContent=scanTxt()}
+function scanCancel(){if(!SC)return;SC.cancel=true;if(SC.xhr)SC.xhr.abort()}
+function xhrExtract(blob,ms,st){return new Promise(function(res,rej){var x=new XMLHttpRequest(),fd=new FormData();fd.append("file",blob,"p.jpg");st.xhr=x;
+ x.open("POST","/api/extract");x.timeout=ms;
+ x.upload.onprogress=function(e){if(e.lengthComputable)st.pct=Math.round(e.loaded/e.total*100)};
+ x.upload.onload=function(){st.step="read";scanBar()};
+ x.onload=function(){var j=null;try{j=JSON.parse(x.responseText)}catch(e){}if(x.status>=200&&x.status<300)res(j);else rej(new Error((j&&j.detail)||("HTTP "+x.status)))};
+ x.onerror=function(){rej(new Error("couldn’t reach the server"))};
+ x.ontimeout=function(){rej(new Error("no answer after "+Math.round(ms/1000)+" seconds"))};
+ x.onabort=function(){rej(new Error("cancelled"))};
+ x.send(fd)})}
+function scan(){var inp=$("fscan");inp.value="";inp.onchange=function(){var f=inp.files&&inp.files[0];if(f)runScan(f)};inp.click()}
+async function runScan(f){
+ if(SC&&!SC.err)return fail("Already reading a photo. Wait for it, or tap Cancel.");
+ var st=SC={t0:Date.now(),step:"prep",pct:0};scanBar();st.timer=setInterval(scanTick,500);
+ try{
+  var blob=await new Promise(function(r){toBlob(f,r)});
+  if(st.cancel)throw new Error("cancelled");if(!blob)throw new Error("couldn’t open that image");
+  st.step="up";scanBar();
+  var res=await xhrExtract(blob,60000,st);clearInterval(st.timer);
+  var secs=Math.round((Date.now()-st.t0)/1000),it=(res&&res.items)||[];
+  SC=null;scanBar();
+  if(!it.length)return fail("Nothing readable found in that photo ("+secs+"s). Enter it by hand.");
+  if(tab!="Receive"){tab="Receive";msg=null;render()}
+  if(res.kind=="label"||it.length==1){fillOne(it[0]);readPhoto(f,function(d){PH=d;if($("pv")){$("pv").src=d;$("pv").style.display="block"}});okMsg("Read in "+secs+"s. Filled from the photo. Check the highlighted fields (handwriting and corrections are often misread), then enter the cartons.")}
+  else{IMP=it.map(function(x){return{name:x.name||"",colour:x.colour||"",size:x.size||"",lot:x.lot||"",q:x.cartons||"",pack:x.pcs_per_carton?String(x.pcs_per_carton):""}});$("imp").innerHTML=impHtml();okMsg("Read "+IMP.length+" lines in "+secs+"s. Check every line before receiving.")}
+ }catch(e){clearInterval(st.timer);
+  if(e.message=="cancelled"){SC=null;scanBar();return}
+  st.err="Couldn’t read the photo ("+Math.round((Date.now()-st.t0)/1000)+"s): "+e.message+". Enter it by hand or try again.";SC=st;scanBar()}}
+function impHtml(){if(!IMP.length)return"";var h='<h3>Import review</h3><p class="m">Goes into the warehouse selected above. Fix anything that’s wrong.</p>';
+ IMP.forEach(function(x,i){h+='<div class="row" style="display:block"><input id="in'+i+'" value="'+esc(x.name)+'" placeholder="Item" oninput="IMP['+i+'].name=this.value"><div class="two" style="margin-top:6px"><input value="'+esc(x.colour)+'" placeholder="Colour" oninput="IMP['+i+'].colour=this.value"><input value="'+esc(x.size)+'" placeholder="Size" oninput="IMP['+i+'].size=this.value"></div><div class="two" style="margin-top:6px"><input id="iq'+i+'" type="number" inputmode="numeric" value="'+esc(x.q)+'" placeholder="Cartons" oninput="IMP['+i+'].q=this.value"><input value="'+esc(x.lot)+'" placeholder="Lot (blank if none)" oninput="IMP['+i+'].lot=this.value"></div><button class="sm" style="margin-top:6px" onclick="IMP.splice('+i+',1);$(\'imp\').innerHTML=impHtml()">Remove line</button></div>'});
+ return h+'<button class="btn" onclick="impAll()">Receive all '+IMP.length+' lines</button>'}
+/* a typed quantity as whole cartons: decimals rounded down (towards zero); NaN if it isn't a number */
+/* the server's limits (main._limits, MAX_QTY): checked here too, so a long "per carton" or a typo'd quantity is refused
+   at the form while everything is still filled in, instead of being accepted on the phone and refused at sync */
+var LIM={product:[120,"Item name","nm"],alias:[120,"Internal name","al"],colour:[80,"Colour","col"],size:[80,"Size","sz"],lot:[80,"Lot","lot"],pack:[40,"Per carton","ppc"],note:[500,"Note","note"]},MAXQ=100000;
+function limBad(o,pre){for(var k in LIM)if(o[k]!=null&&String(o[k]).length>LIM[k][0]){fail((pre||"")+LIM[k][1]+" is too long ("+String(o[k]).length+" characters; the most is "+LIM[k][0]+"). Nothing was saved and your entries are kept.",[LIM[k][2]]);return true}
+ if(o.qty>MAXQ){fail((pre||"")+"More than "+MAXQ+" cartons in one entry: please check the number. Nothing was saved.",["q"]);return true}return false}
+function whole(v){var t=String(v==null?"":v).trim();if(!/^-?\d*\.?\d+$/.test(t)&&!/^-?\d+\.$/.test(t))return NaN;var n=parseFloat(t);return n<0?-Math.floor(-n):Math.floor(n)}
+function impAll(){var bad=[],ids=[];IMP.forEach(function(x,i){if(!String(x.name).trim()){bad.push("line "+(i+1)+" item name");ids.push("in"+i)}if(!(whole(x.q)>0)||whole(x.q)>MAXQ){bad.push("line "+(i+1)+" cartons");ids.push("iq"+i)}["name","colour","size","lot","pack"].forEach(function(k){var lk_={name:"product"}[k]||k;if(String(x[k]||"").trim().length>LIM[lk_][0])bad.push("line "+(i+1)+" "+LIM[lk_][1].toLowerCase()+" too long (max "+LIM[lk_][0]+")")})});
+ if(bad.length)return fail("Please double-check: "+bad.join(", ")+". Nothing was saved and your entries are kept.",ids);
+ var loc=+$("loc").value,n=IMP.length;IMP.forEach(function(x){var nm=String(x.name).trim(),pr=S.prods.find(function(p){return p.name.toLowerCase()==nm.toLowerCase()||(p.alias||"").toLowerCase()==nm.toLowerCase()});
+  queue({kind:"receive",product:pr?pr.name:nm,alias:"",pack:x.pack,colour:String(x.colour).trim(),size:String(x.size).trim(),lot:String(x.lot).trim(),loc:loc,qty:whole(x.q),note:"packing list import"})});IMP=[];done("Received "+n+" lines into "+LN(loc)+".")}
+/* ---------- sale / adjust / transfer ---------- */
+var SELK="",SELP=0,FW=0;
+function lk(r){return r.v+"|"+r.lot+"|"+r.loc}
+function words(q){return String(q||"").toLowerCase().split(/\s+/).filter(Boolean)}
+function hasAll(t,ws){t=t.toLowerCase();return ws.every(function(w){return t.indexOf(w)>-1})}
+function plist(){var ws=words($("fl")?$("fl").value:"");return rows().filter(function(r){return(r.q>0||(r.q<0&&tab=="Sale/Adjust"))&&(!FW||r.loc==FW)&&(!ws.length||hasAll(vl(r.v)+" "+(P(V(r.v).prod).alias||"")+" "+r.lot+" "+LN(r.loc),ws))}).sort(function(a,b){var x=V(a.v),y=V(b.v);return nat(P(x.prod).name,P(y.prod).name)||nat(x.colour||"",y.colour||"")||szCmp(x.size||"",y.size||"")||nat(LN(a.loc),LN(b.loc))||nat(a.lot,b.lot)})}
+function opts(l){if(!l.length)return'<p class="m" style="padding:10px">No matching stock.</p>';var h="",last=-1;l.forEach(function(r,i){var v=V(r.v);if(v.prod!=last){last=v.prod;h+='<div class="lh">'+esc(P(v.prod).name)+"</div>"}
+ h+='<div class="ln'+(lk(r)==SELK?" on":"")+'" data-k="'+esc(lk(r))+'" onclick="selRow(this.dataset.k)"><div><b><span class="pnm">'+esc(P(v.prod).name)+' · </span>'+(esc([v.colour,v.size].filter(Boolean).join(" · "))||"n/a")+'</b><div class="m">'+(r.lot?"lot "+esc(r.lot):"no lot")+" · "+esc(LN(r.loc))+'</div></div><div class="qn">'+r.q+"<small>ctn</small></div></div>"});return h}
+function refSel(keep){var l=plist(),had=SELK,gone=keep&&had&&!l.some(function(r){return lk(r)==had});
+ if(gone){SELK="";var b=$("mb");msg={e:1,t:"The line you picked just changed on another device (sold out or moved). Pick it again."};if(b)b.innerHTML='<div class="msg err">'+esc(msg.t)+"</div>"}
+ else if(!keep&&!l.some(function(r){return lk(r)==SELK}))SELK=l.length==1?lk(l[0]):"";$("sel").innerHTML=opts(l);if(!SELK)SELP=0;$("sel").classList.toggle("picked",!!SELP);selChg();selSync()}
+function selChg(){var s=$("sel");if(!s)return;var b=s.querySelector(".selchg");if(SELP&&!b)s.insertAdjacentHTML("beforeend",'<button class="selchg" onclick="SELP=0;refSel(true)">Change line</button>');else if(!SELP&&b)b.remove()}
+function selRow(k){SELK=k;SELP=1;var f=$("fl");if(f&&document.activeElement===f)f.blur();$("sel").classList.add("picked");selChg();document.querySelectorAll("#sel .ln").forEach(function(e){e.classList.toggle("on",e.dataset.k==k)});selSync();selShow()}
+/* after a pick, scroll just enough that the Record/Transfer button sits above the bottom tab bar */
+function selShow(){var f=$("self");if(!f||f.hidden||document.documentElement.classList.contains("kb"))return;var bt=f.querySelector(".btn"),bn=$("bnav"),lim=bn&&bn.offsetHeight?bn.getBoundingClientRect().top-8:window.innerHeight-8;if(!bt)return;var d=bt.getBoundingClientRect().bottom-lim;if(d>0)window.scrollBy(0,d)}
+/* the form under the list (cartons, note, Record/Transfer) only shows once a line is picked, so the list and the form never compete for the screen */
+function selSync(){var r=pick(),t=$("to"),f=$("self"),hh=$("selh");if(f)f.hidden=!r;if(hh)hh.style.display=r?"none":"";if(r&&t&&+t.value==r.loc){var o=act().find(function(l){return l.id!=r.loc});if(o)t.value=o.id}saLbl()}
+// selection is remembered by line (variant|lot|warehouse), not list position: a background sync can add or drop lines
+function pick(){return SELK&&plist().find(function(r){return lk(r)==SELK})||null}
+function base(r,k,q,extra){var v=V(r.v),o={kind:k,product:P(v.prod).name,colour:v.colour,size:v.size,lot:r.lot,loc:r.loc,qty:q};for(var x in extra)o[x]=extra[x];return o}
+function saLbl(){var l=$("ql");if(!l)return;if($("adw"))$("adw").style.display=$("t")&&$("t").value=="adjust"?"block":"none";var t=$("t")?$("t").value:"move",r=pick(),av=r?" ("+cur(r.v,r.lot,r.loc)+" available)":"";l.textContent=t=="count"?"Cartons counted — total on the shelf now"+(r?" (system says "+cur(r.v,r.lot,r.loc)+")":""):t=="move"?"Cartons to move"+av:"Cartons"+av}
+function recount(r){var c=whole($("q").value),n=$("note").value.trim();
+ if(isNaN(c)||c<0)return fail("Please double-check: enter the number of cartons you counted (0 is fine). Nothing was saved and your entries are kept.",["q"]);
+ if(limBad({note:n,qty:c}))return;
+ var was=cur(r.v,r.lot,r.loc),d=c-was;if(!d)return done("Count matches the system ("+c+"). Nothing to record.");
+ var tail=": system "+was+", counted "+c+(n?" · "+n:"");
+ if(d<0)queue(base(r,"sale",-d,{note:"Recount (result of sale)"+tail}));else queue(base(r,"adjust",d,{note:"Recount"+tail}));
+ done("Recount saved: "+was+" → "+c+(d<0?" ("+(-d)+" recorded as sold).":" (+"+d+" adjustment).")) }
+function sale(){var r=pick();if(!r)return fail("Pick a stock line from the list.");var t=$("t").value;if(t=="count")return recount(r);var q=whole($("q").value),n=$("note").value.trim();
+ if(t=="sale"&&q<0)return fail("Please double-check: a sale is a positive number of cartons. Nothing was saved.",["q"]);
+ if(!q)return fail("Please double-check: enter the number of cartons. Nothing was saved and your entries are kept.",["q"]);var d=t=="sale"?-Math.abs(q):t=="adjust"&&q>0?q*(+$("adir").value):q;  // the phone number pad has no minus key, so adjust direction is a dropdown (a typed minus still works)
+ if(t=="adjust"&&!n)return fail("Please double-check: adjustments need a note. Nothing was saved.",["note"]);
+ if(limBad({note:n,qty:Math.abs(q)}))return;
+ if(cur(r.v,r.lot,r.loc)+d<0)return fail("Blocked: would take this lot below zero.",["q"]);
+ queue(base(r,t,t=="sale"?Math.abs(q):d,{note:n}));done((t=="sale"?"Sold ":d<0?"Removed ":"Added ")+Math.abs(d)+" cartons"+(t=="sale"?".":" (adjustment).")) }
+function transfer(){var r=pick();if(!r)return fail("Pick a stock line from the list.");var q=whole($("q").value),to=+$("to").value;
+ if(!(q>0))return fail("Please double-check: enter the number of cartons to move. Nothing was saved.",["q"]);if(to==r.loc)return fail("Destination is the same warehouse.",["to"]);
+ if(cur(r.v,r.lot,r.loc)-q<0)return fail("Blocked: not enough at source.",["q"]);
+ if(limBad({note:$("note")?$("note").value.trim():"",qty:q}))return;
+ queue(base(r,"transfer",q,{to:to}));done("Moved "+q+" cartons to "+LN(to)+".")}
+/* ---------- warehouses (online only) ---------- */
+function lren(id){RN=id;render()}
+function lact(id,e){var a=e.value;e.value="";var l=S.locs.find(function(x){return x.id==id});if(!l||!a)return;
+ if(a=="sec")return secOpen(id);if(a=="role")lrole(id,l.role=="picking"?"holding":"picking");else if(a=="ren")lren(id);else if(a=="arc")larc(id);else if(a=="del"&&confirm("Delete "+l.name+"? It has no history, so nothing is lost."))ldel(id)}
+function lsave(id){var n=$("rn").value.trim();if(!n)return fail("Name required.");call(function(){return post("/api/location/"+id,{name:n})},"Renamed.")}
+function ladd(){var n=$("nl").value.trim();if(!n)return fail("Name required.",["nl"]);call(function(){return post("/api/location",{name:n,role:$("nr").value})},"Added "+n+".")}
+function lrole(id,r){call(function(){return post("/api/location/"+id,{role:r})},"Now a "+r+" warehouse.")}
+function larc(id){var l=S.locs.find(function(x){return x.id==id});call(function(){return post("/api/location/"+id,{active:!l.on})},l.on?"Archived.":"Restored.")}
+function ldel(id){call(function(){return http("/api/location/"+id,{method:"DELETE"})},"Deleted.")}
+/* ---------- settings (API key lives on the server, never in the page) ---------- */
+function pill(t,k){return'<span class="pill p-'+k+'">'+t+"</span>"}
+function cardx(title,sub,pl,inner){return'<div class="cardx"><div class="ch"><div><h3>'+title+'</h3><div class="m" style="display:block;margin:2px 0 0">'+sub+"</div></div>"+pl+"</div>"+inner+"</div>"}
+async function loadSettings(){var e=$("st");if(!e)return;try{var s=await http("/api/settings"),t=await http("/api/telegram"),on=s.key_set||s.env_key;
+ e.innerHTML=cardx("Photo reading","Claude API: reads box photos and packing lists",on?pill("On","ok"):pill("Off","off"),
+  '<p class="m" style="display:block;margin:12px 0 0">'+(s.key_set?"Key saved ("+esc(s.key_hint)+").":s.env_key?"Using a key set on the server.":"No key saved yet.")+'</p><label>Anthropic API key (from console.anthropic.com)</label><input id="ak" type="password" autocomplete="off" placeholder="sk-ant-…">'+
+  '<div class="btnrow"><button class="btn" onclick="saveKey()">Save key</button>'+(s.key_set?'<button class="btn dng" onclick="clearKey()">Remove</button>':"")+"</div>"+
+  '<p class="m" style="display:block">Stored on your Unraid server only. The app can replace or remove it but never shows it again. Set a monthly spend limit for the key in the Anthropic console.</p>')+
+  tgHtml(t)+
+  cardx("About","This app",'',"<p class=\"m\" style=\"display:block;margin:10px 0 0\">App version "+esc(BUILD.slice(0,7))+" · server "+esc((SV.build||"?").slice(0,7))+"</p>"+(s.backup?'<p class="m" style="display:block;margin:6px 0 0'+(s.backup.error?';color:var(--bad)':"")+'">'+(s.backup.error?"Last backup FAILED: "+esc(s.backup.error):s.backup.last?"Last backup: "+esc(s.backup.last)+" ("+s.backup.count+" daily copies kept)":"No backup yet (made within the first hour)")+"</p>":""))}
+ catch(x){e.innerHTML='<p class="m">Needs a connection.</p>'}}
+function tgHtml(t){var st=!t.token_set?pill("Off","off"):t.running?pill("Running","ok"):pill("Not connected","bad");
+ return cardx("Telegram bot","Stock lookups and refill list in Telegram",st,
+ '<p class="m" style="display:block;margin:12px 0 0">'+(!t.token_set?"No token saved yet.":t.running?"Connected as <b>@"+esc(t.bot)+"</b>.":"Saved as <b>@"+esc(t.bot||"?")+"</b> but not connected"+(t.err?": "+esc(t.err):"")+".")+"</p>"+(t.post_err?'<div class="msg err">Last group post: '+esc(t.post_err)+"</div>":"")+
+ '<div class="sh">Connection</div><label>Bot token (from @BotFather)</label><input id="tgt" type="password" autocomplete="off" placeholder="'+(t.token_set?"saved ("+esc(t.token_hint)+"), paste to replace":"123456:ABC…")+'">'+
+ '<div class="sh">Who can use it</div><label>Allowed user IDs (comma separated)</label><input id="tgu" inputmode="text" autocomplete="off" value="'+esc(t.users)+'" placeholder="e.g. 123456789, 987654321">'+
+ '<div class="sh">Group</div><label>Group chat ID (optional)</label><input id="tgg" value="'+esc(t.group)+'" placeholder="e.g. -1001234567890">'+
+ '<label>Post the refill list daily at hour (0-23, blank = off)</label><input id="tgh" type="number" inputmode="numeric" min="0" max="23" value="'+esc(t.hour)+'">'+
+ '<button class="btn" onclick="tgSave()">Save Telegram settings</button>'+((t.token_set&&t.group)||t.token_set?'<div class="btnrow">'+(t.token_set&&t.group?'<button class="btn sec" onclick="tgTest()">Post refill list now</button>':"")+(t.token_set?'<button class="btn dng" onclick="tgClear()">Remove token</button>':"")+"</div>":"")+
+ '<details class="how"><summary>How it works</summary><p class="m" style="display:block">Only the user IDs listed here get answers. To find IDs, message the bot (or add it to the group) and send /id. In the group the bot answers commands (/low, /stock name) and @mentions. It can only read stock, never change it. Questions and answers pass through Telegram’s servers. The token is stored on your Unraid server only and is never shown again.</p></details>')}
+function tgSave(){var b={users:$("tgu").value,group:$("tgg").value,hour:$("tgh").value},k=$("tgt").value.trim();if(k)b.token=k;
+ post("/api/telegram",b).then(function(){msg={e:0,t:"Telegram settings saved."};render()}).catch(function(e){fail(e.message)})}
+function tgTest(){post("/api/telegram/test",{}).then(function(r){msg={e:0,t:r.posted?"Posted "+r.posted+" lines to the group.":"Nothing needs refilling, so nothing was posted."};render()}).catch(function(e){fail(e.message)})}
+function tgClear(){post("/api/telegram",{token:""}).then(function(){msg={e:0,t:"Bot token removed."};render()}).catch(function(e){fail(e.message)})}
+function saveKey(){var k=$("ak").value.trim();if(!k)return fail("Paste the key first.",["ak"]);post("/api/settings",{api_key:k}).then(function(){$("ak").value="";msg={e:0,t:"Key saved."};render()}).catch(function(e){fail(e.message,["ak"])})}
+function clearKey(){post("/api/settings",{api_key:""}).then(function(){msg={e:0,t:"Key removed."};render()}).catch(function(e){fail(e.message)})}
+/* ---------- report ---------- */
+function report(){var y=parseInt($("y").value,10)||new Date().getFullYear(),a=y+"-01-01",b=(y+1)+"-01-01",o={};
+ /* local-time year (not UTC); a reversal counts in the year of the movement it reverses, so reversing last year's sale
+    corrects last year instead of giving this year a negative "Sold" */
+ var ots={};S.mv.forEach(function(x){if(x.op&&!x.rv&&!ots[x.op])ots[x.op]=x.ts});
+ function ly(ts){var t=new Date(ts);return isNaN(t)?String(ts).slice(0,4):String(t.getFullYear())}
+ a=String(y);b=String(y+1);
+ S.mv.forEach(function(x){var k=x.v+"|"+x.lot;o[k]=o[k]||{v:x.v,lot:x.lot,op:0,rc:0,sl:0,ad:0};var r=o[k],d=ly(x.rv&&ots[x.rv]||x.ts);
+ if(d<a)r.op+=x.qty;else if(d<b){if(x.type=="receive")r.rc+=x.qty;else if(x.type=="sale")r.sl+=-x.qty;else if(x.type=="adjust")r.ad+=x.qty}});
+ var h='<div class="sc"><table><tr><th>Item / lot</th><th>Open</th><th>Recv</th><th>Sold</th><th>Adj</th><th>Close</th><th>Sold %</th></tr>';
+ Object.keys(o).forEach(function(k){var r=o[k],cl=r.op+r.rc-r.sl+r.ad,bs=r.op+r.rc,pc=bs>0?Math.round(r.sl/bs*100)+"%":"–";
+ h+="<tr><td>"+esc(vl(r.v))+" · "+(r.lot?esc(r.lot):"no lot")+"</td><td>"+r.op+"</td><td>"+r.rc+"</td><td>"+r.sl+"</td><td>"+r.ad+"</td><td>"+cl+"</td><td>"+pc+"</td></tr>"});
+ $("rep").innerHTML=h+"</table></div><p class='m'>In cartons. Sold % is sold ÷ (open + received). Transfers net to zero across warehouses, so they are left out.</p>"}
+/* ---------- PDF export (server side) ---------- */
+function cbx(lab,on,js){return'<label style="display:flex;gap:8px;align-items:center;margin:6px 0;color:var(--fg);font-size:15px"><input type="checkbox" style="width:auto" '+(on?"checked ":"")+'onchange="'+js+'">'+lab+"</label>"}
+/* Reports → Stock PDF: any number of items in one PDF */
+var XR=null;
+function xrInit(){if(XR)return;XR={items:[],col:true,size:true,lot:true,upd:true,tot:false,dis:true,split:"auto",zero:true,cnt:false,note:"",locs:{}};S.locs.forEach(function(l){if(l.on)XR.locs[l.id]=true})}
+function xrHtml(){xrInit();var it=XR.items.map(P).filter(Boolean),cs=cats();
+ return'<div class="sub" style="display:block;margin-bottom:14px"><b>Stock PDF</b><div class="m" style="display:block">Pick one or more items; they go into one PDF.</div>'+
+  (it.length?it.map(function(p){return'<div class="gr"><span>'+esc(p.name)+'</span><button class="sm" aria-label="Remove" data-p="'+p.id+'" onclick="xrDel(+this.dataset.p)">✕</button></div>'}).join(""):'')+
+  '<label>Add an item</label><input id="xri" autocomplete="off" placeholder="Type to search items" oninput="xrSg()" onfocus="xrSg()" onblur="setTimeout(function(){if($(\'xrs\')&&document.activeElement!==$(\'xri\'))$(\'xrs\').innerHTML=\'\'},400)"><div id="xrs"></div>'+
+  (cs.length?'<label>Or add a whole category</label><select onchange="xrCat(this.value);this.value=\'\'"><option value="">Choose a category…</option>'+cs.map(function(c){return'<option value="'+esc(c)+'">'+esc(c)+"</option>"}).join("")+"</select>":"")+
+  '<details style="margin-top:10px"><summary>PDF options</summary>'+cbx("Colour column",XR.col,"XR.col=this.checked")+cbx("Size column",XR.size,"XR.size=this.checked")+cbx("Show lots (off = lots added together)",XR.lot,"XR.lot=this.checked")+cbx("Last updated date",XR.upd,"XR.upd=this.checked")+
+  '<label>Tables</label><select onchange="XR.split=this.value">'+[["auto","Each item as it is grouped (table per size for size-first items)"],["","One table per item"],["size","One table per size"],["colour","One table per colour"]].map(function(o){return'<option value="'+o[0]+'"'+(XR.split==o[0]?" selected":"")+">"+o[1]+"</option>"}).join("")+"</select>"+
+  cbx("Totals only (no column per warehouse)",XR.tot,"XR.tot=this.checked")+'<div class="m" style="margin-top:6px">Warehouses counted (a warehouse with none of an item gets no column)</div>'+S.locs.filter(function(l){return l.on}).map(function(l){return cbx(esc(l.name),XR.locs[l.id]!==false,"XR.locs["+l.id+"]=this.checked")}).join("")+
+  '<div class="m" style="margin-top:6px">Extras</div>'+cbx("List variants with zero stock",XR.zero,"XR.zero=this.checked")+cbx("Show discontinued variants (marked, never highlighted)",XR.dis,"XR.dis=this.checked")+cbx("Blank “Counted” column for a physical count",XR.cnt,"XR.cnt=this.checked")+
+  '<label>Note printed at the end</label><input value="'+esc(XR.note)+'" oninput="XR.note=this.value"></details>'+
+  '<button class="btn" onclick="xrGo()"'+(it.length?"":" disabled")+">"+(it.length>1?"Create PDF of "+it.length+" items":"Create PDF")+"</button></div>"}
+function xrDraw(){var e=$("xr");if(e)e.innerHTML=xrHtml()}
+function xrSg(){var b=$("xrs"),q=$("xri").value.trim().toLowerCase();var o=S.prods.filter(function(p){return p.id>0&&XR.items.indexOf(p.id)<0&&(!q||(p.name+" "+(p.alias||"")).toLowerCase().indexOf(q)>-1)}).sort(function(a,b){return nat(a.name,b.name)}).slice(0,30);
+ b.innerHTML=o.length?'<div class="sg">'+o.map(function(p){return'<div class="opt" data-p="'+p.id+'" onpointerdown="event.preventDefault()" onmousedown="event.preventDefault()" onclick="GHOST=Date.now();xrAdd(+this.dataset.p)">'+esc(p.name)+(p.alias?' <span class="m" style="display:inline">'+esc(p.alias)+"</span>":"")+"</div>"}).join("")+"</div>":""}
+function xrAdd(id){if(XR.items.indexOf(id)<0)XR.items.push(id);xrDraw();var i=$("xri");if(i){i.focus();xrSg()}}
+function xrDel(id){XR.items=XR.items.filter(function(x){return x!=id});xrDraw()}
+function xrCat(c){if(!c)return;S.prods.filter(function(p){return p.id>0&&(p.cat||"")==c}).sort(function(a,b){return nat(a.name,b.name)}).forEach(function(p){if(XR.items.indexOf(p.id)<0)XR.items.push(p.id)});xrDraw()}
+function xrGo(){if(!XR.items.length)return fail("Pick at least one item.");if(!XR.col&&!XR.size&&!XR.lot)return fail("Show at least one of colour, size or lot.");
+ var l=S.locs.filter(function(x){return x.on&&XR.locs[x.id]!==false}).map(function(x){return x.id});if(!l.length&&!XR.tot)return fail("Pick at least one warehouse, or tick “Totals only”.");
+ pdfOpen("/api/export?items="+XR.items.join(",")+"&col="+(+XR.col)+"&size="+(+XR.size)+"&lot="+(+XR.lot)+"&upd="+(+XR.upd)+"&tot="+(+XR.tot)+"&split="+XR.split+"&dis="+(+XR.dis)+"&zero="+(+XR.zero)+"&cnt="+(+XR.cnt)+"&locs="+l.join(",")+"&note="+encodeURIComponent(XR.note))}
+/* ---------- render ---------- */
+function render(){var of=$("fl");if(of)of.value="";SELK="";SELP=0;if(!act().some(function(l){return l.id==FW}))FW=0;
+ $("nav").style.display=sec()=="stock"?"flex":"none";$("ttl").textContent=sec()=="stock"?"Magpie":tab=="Notifications"?"Alerts":tab;bnav();
+ $("nav").innerHTML=TOP.map(function(t){return'<button class="'+(t==tab?"on":"")+'" onclick="go(\''+t+'\')">'+t+"</button>"}).join("");hdr();
+ var h="",lr=act().map(function(l){return'<option value="'+l.id+'"'+(l.id==LASTLOC?" selected":"")+">"+esc(l.name)+"</option>"}).join(""),lo=act().map(function(l){return'<option value="'+l.id+'">'+esc(l.name)+"</option>"}).join(""),r=rows().filter(function(x){return x.q>0}),sel='<label>From warehouse</label><select id="fw" onchange="FW=+this.value;refSel()"><option value="0">All warehouses</option>'+act().map(function(l){return'<option value="'+l.id+'"'+(l.id==FW?" selected":"")+">"+esc(l.name)+"</option>"}).join("")+'</select><label>Search stock, then tap a line</label><input id="fl" placeholder="Name, internal name, colour, size, lot…" oninput="SELP=0;refSel()"><div id="sel" class="lst">'+opts(plist())+"</div>";
+ if(tab=="Stock")h+=wfChips()+'<input id="fq" placeholder="Search name, internal name, colour, size" value="'+esc(Q)+'" oninput="Q=this.value;$(\'res\').innerHTML=stockHtml()"><div id="res">'+stockHtml()+'</div>';
+ if(tab=="Receive")h+='<div id="mbt">'+(msg&&!msg.e?'<div class="msg ok">'+esc(msg.t)+"</div>":"")+"</div>"+'<label style="display:flex;gap:10px;align-items:center;margin-top:0"><input type="checkbox" id="prep" style="width:auto"'+(PREP?" checked":"")+' onchange="PREP=this.checked;prepUpd()"> Prepare only: set the item up now, receive stock later</label><div class="rcvonly"><label>Receive into warehouse</label><select id="loc" onchange="setLoc(this.value);secField()">'+lr+'</select><div id="secw"></div></div><label>Item (type to search by name or internal name, or pick)</label><div class="inl"><input id="nm" autocomplete="off" oninput="typed()" onfocus="cb()" onblur="hideCb()"><button class="ic" aria-label="Read from box photo or packing list" onclick="scan()">📷</button></div><div id="cbl"></div><div id="imp">'+impHtml()+'</div><div class="two"><div id="wc"><label>Colour</label><input id="col" autocomplete="off" placeholder="Type colour" oninput="chips(\'col\')" onfocus="chips(\'col\')" onblur="hideSg(\'col\')"><div id="cc"></div></div><div id="wz"><label>Size</label><input id="sz" autocomplete="off" placeholder="Type size" oninput="chips(\'sz\')" onfocus="chips(\'sz\')" onblur="hideSg(\'sz\')"><div id="sc"></div></div></div><div id="cphw"></div><div class="rcvonly"><label>Cartons received</label><div class="inl"><input id="q" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g. 32+34+36" onchange="qFix()" onkeydown="if(event.key==\'Enter\'){event.preventDefault();qFix()}"><button class="ic" type="button" aria-label="Plus" onmousedown="event.preventDefault()" onclick="qOp(\'+\',$(\'q\'))">+</button><button class="ic" type="button" aria-label="Minus" onmousedown="event.preventDefault()" onclick="qOp(\'-\',$(\'q\'))">−</button></div></div><label>Per carton</label><input id="ppc" autocomplete="off" placeholder="24 doz, 24x6, 60" oninput="PPCAUTO=!this.value.trim()"><details class="more"><summary id="mores">More details (optional)</summary><label>Internal name (what you call it, searchable)</label><input id="al" oninput="moreSum()"><label>Lot (leave blank if none)</label><input id="lot" autocomplete="off" placeholder="Type or pick a lot" oninput="moreSum();chips(\'lot\')" onfocus="chips(\'lot\')" onblur="hideSg(\'lot\')"><div id="lc"></div><label>Keep a photo with this item (only saved, not read)</label><input type="file" accept="image/*" onchange="onPick(this)"><img id="pv"><button class="sm" id="rdph" style="display:none;margin-top:8px" onclick="readPicked()">📷 Read fields from this photo</button><label>Note</label><input id="note" oninput="moreSum()"></details><label>Receiving several? (optional)</label><select id="rmode" onchange="setRm(this.value)"><option value="">No, just this one</option><option value="more">Save, then add another</option><option value="colour">Enter many colours (one size)</option><option value="size">Enter many sizes (one colour)</option></select><button class="btn" id="rgo" onclick="rcvGo()">Receive</button>';
+ if(tab=="Sale/Adjust")h+=rows().length?sel+'<p class="m" id="selh">Tap a line above to sell, recount or adjust it.</p><div id="self" hidden><label>Type</label><select id="t" onchange="saLbl()"><option value="sale">Sale (removes stock)</option><option value="count">Recount (I counted N, set it to N)</option><option value="adjust">Adjust (add or remove, note required)</option></select><div id="adw" style="display:none"><label>Direction</label><select id="adir"><option value="1">Add to stock (+)</option><option value="-1">Remove from stock (−)</option></select></div><label id="ql">Cartons</label><input id="q" type="number" inputmode="numeric"><label>Note</label><input id="note"><button class="btn" onclick="sale()">Record</button></div>':'<p class="m">No stock yet.</p>';
+ if(tab=="Transfer")h+=rows().length?sel+'<p class="m" id="selh">Tap a line above to move it.</p><div id="self" hidden><label>Move to</label><select id="to">'+lo+'</select><label id="ql">Cartons to move</label><input id="q" type="number" inputmode="numeric"><button class="btn" onclick="transfer()">Transfer</button></div>':'<p class="m">No stock yet.</p>';
+ if(tab=="Notifications")h+='<div id="bellp">'+bellHtml()+"</div>";
+ if(tab=="Settings")h+='<div id="st"><p class="m">Loading…</p></div>';
+ if(tab=="Report")h+='<div id="xr">'+xrHtml()+'</div><label>Year</label><input id="y" type="number" value="'+new Date().getFullYear()+'" oninput="report()"><div id="rep"></div>';
+ if(tab=="Log"){if(REJ.length)h+='<div class="msg err"><b>Rejected by the server (not saved):</b>'+REJ.map(function(x){return'<div>'+esc(x.op.kind)+" · "+esc(x.op.product||"")+" · "+esc(x.op.colour||"")+" "+esc(x.op.size||"")+" × "+esc(x.op.qty||"")+" — "+esc(x.msg)+"</div>"}).join("")+'<button class="sm" style="margin-top:8px" onclick="REJ=[];persist();render()">Dismiss</button></div>';
+  h+=S.mv.length?(function(){var rv=revInfo();return logRows().reverse().slice(0,300).map(function(x){var gone=x.op&&rv.done[x.op],can=!x.pend&&x.op&&!x.rv&&!gone&&x.qty;return'<div class="row"><div class="grow"><b'+(gone?' style="text-decoration:line-through"':"")+'>'+(x.rv?"↩ ":"")+(x.type=="move"?"moved "+x.qty+" ("+esc(SNAME(x.loc,x.from))+" → "+esc(SNAME(x.loc,x.to))+")":x.type+" "+(x.qty>0?"+":"")+x.qty)+" · "+esc(vl(x.v))+(x.flag?" ⚠":"")+(x.pend?" ⏳":"")+'</b><span class="m">'+(x.rv?"reversal of the "+esc(rv.what[x.rv]||"movement")+" · ":"")+(gone?"reversed "+fmt(rv.done[x.op])+" · ":"")+(x.lot?"lot "+esc(x.lot):"no lot")+" · "+esc(LN(x.loc))+" · "+fmt(x.ts)+(x.user?" · "+esc(x.user):"")+(x.note?" · "+esc(x.note):"")+(x.flag?" · went below zero, check":"")+(x.pend?" · waiting to sync":"")+"</span>"+(can&&RVK==x.op?revAskHtml(x):"")+"</div>"+(can&&RVK!=x.op?'<button class="sm" data-op="'+esc(x.op)+'" onclick="RVK=this.dataset.op;render()">Reverse</button>':"")+"</div>"}).join("")})():'<p class="m">Empty.</p>'}
+ if(tab=="Warehouses")h+=S.locs.map(function(l){var used=S.mv.some(function(m){return m.loc==l.id}),st=rows().some(function(x){return x.loc==l.id});
+  return'<div class="row"><div class="grow">'+(RN==l.id?'<input id="rn" value="'+esc(l.name)+'">':'<b>'+esc(l.name)+'</b>')+(l.on?"":'<span class="m">archived</span>')+'<span class="m">'+(l.role=="picking"?"Picking":"Holding")+(l.hs?" · sections: "+(l.secs.length?esc(l.secs.map(function(z){return z.name}).join(", ")):"none drawn yet"):"")+'</span></div>'+(RN==l.id?'<button class="sm" onclick="lsave('+l.id+')">Save</button><button class="sm" onclick="RN=null;render()">Cancel</button>':'<select class="lm" onchange="lact('+l.id+',this)"><option value="">Options</option><option value="role">Make '+(l.role=="picking"?"holding":"picking")+'</option><option value="ren">Rename</option><option value="sec">Sections &amp; map…</option>'+(l.on?(st?"":'<option value="arc">Archive</option>'):'<option value="arc">Restore</option>')+(used?"":'<option value="del">Delete</option>')+"</select>")+"</div>"}).join("")+'<label>New warehouse</label><input id="nl"><label>Type</label><select id="nr"><option value="holding">Holding (bulk storage)</option><option value="picking">Picking (orders are picked from here)</option></select><button class="btn" onclick="ladd()">Add warehouse</button><p class="m"><b>Picking</b> warehouses are where orders are picked; the bell lists items that need topping up there from <b>holding</b>. Delete is only offered for warehouses with no history. Others can be archived once empty. Needs a connection.</p>';
+ h+='<div id="mb">'+(msg&&msg.e?'<div class="msg err">'+esc(msg.t)+"</div>":"")+"</div>";if(msg&&!msg.e&&tab!="Receive"){toast(msg.t,0);msg=null}
+ $("main").innerHTML=h;if(tab=="Report")report();if(tab=="Receive"){PPCAUTO=true;chips();rbUpd();secField();prepUpd()}if(tab=="Settings")loadSettings();
+ $("ovw").innerHTML=Z&&P(Z)&&P(Z).photo?'<div id="ov" onclick="Z=null;render()"><img src="'+P(Z).photo+'"></div>':""}
+/* iOS keeps the page height when the keyboard opens (only visualViewport shrinks), so: track the visible area, hide the bottom bars
+   while typing, pin full-screen panels to the visible area, lock the page behind a panel, and bring a focused field into view */
+(function(){var R=document.documentElement,vv=window.visualViewport,Y=null,OVS="#gov,#mov,#sed,#phov,#ov",BH=0,BW=0;
+ function isF(e){return e&&(e.tagName=="TEXTAREA"||e.tagName=="INPUT"&&!/^(checkbox|radio|button|submit|file|range|color)$/.test(e.type))}
+ function ovOpen(){var p=$("pdfov");return!!document.querySelector(OVS)||!!(p&&p.style.display&&p.style.display!="none")}
+ function lock(){var on=ovOpen();if(on&&Y===null){Y=window.scrollY;document.body.style.top=-Y+"px";R.classList.add("lock")}else if(!on&&Y!==null){R.classList.remove("lock");document.body.style.top="";window.scrollTo(0,Y);Y=null}}
+ /* keyboard = visible height dropped >120px below the tallest seen at this width. Works on iOS (only visualViewport shrinks) and on Android with interactive-widget=resizes-content (the whole page shrinks, so innerHeight-vv.height stays 0) */
+ function fit(){if(!vv)return;if(window.innerWidth!=BW){BW=window.innerWidth;BH=0}if(!isF(document.activeElement))BH=Math.max(BH,vv.height);else if(!BH)BH=window.innerHeight;R.style.setProperty("--vvh",vv.height+"px");R.style.setProperty("--vvt",vv.offsetTop+"px");R.classList.toggle("kb",isF(document.activeElement)&&BH-vv.height>120)}
+ function show(e){if(!e||document.activeElement!==e||!vv)return;var r=e.getBoundingClientRect(),top=r.top-vv.offsetTop,h=vv.height,sug=/^(nm|col|sz|lot|ecat|xri)$/.test(e.id),want=sug?70:h*.3;
+  if(!sug&&top>60&&r.bottom-vv.offsetTop<h-20)return;var box=e.closest(".gbd");if(box)box.scrollTop+=top-want-(box.getBoundingClientRect().top-vv.offsetTop);else if(!R.classList.contains("lock"))window.scrollBy(0,top-want)}
+ if(vv){vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit)}
+ document.addEventListener("focusin",function(ev){if(!isF(ev.target))return;fit();setTimeout(function(){fit();show(ev.target)},320)});
+ document.addEventListener("focusout",function(){setTimeout(fit,60)});
+ /* panels are added/removed as children of body or #ovw; the PDF viewer is shown by its style. No polling needed. */
+ var mo=new MutationObserver(function(){lock();fit()});mo.observe(document.body,{childList:true});mo.observe($("ovw"),{childList:true});mo.observe($("pdfov"),{attributes:true,attributeFilter:["style"]});
+ var NV=$("nav");function stuck(){if(NV)NV.classList.toggle("stuck",window.scrollY>0&&NV.getBoundingClientRect().top<=parseFloat(getComputedStyle(NV).top)+1)}addEventListener("scroll",stuck,{passive:true});
+ window.ovLock=lock;fit()})();
+loadLocal();render();loadIdb().then(function(){sync()},function(){idbReady(1);sync()});setInterval(sync,15000);
+addEventListener("online",sync);addEventListener("offline",function(){ONLINE=false;soft()});document.addEventListener("visibilitychange",function(){if(!document.hidden)sync()});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});
+
+/* ---------- warehouse sections & maps ---------- */
+function LOC(id){return S.locs.find(function(l){return l.id==id})}
+function secs(loc){var l=LOC(loc);return l&&l.hs?(l.secs||[]):[]}
+function SNAME(loc,id){if(!id)return"Unsorted";var l=LOC(loc),z=l&&(l.secs||[]).find(function(x){return x.id==id});return z?z.name:"Unsorted"}
+function homeSec(pid,loc){if(!secs(loc).length)return 0;var h=(S.homes||[]).find(function(x){return x[0]==pid&&x[1]==loc});return h&&secs(loc).some(function(z){return z.id==h[2]})?h[2]:0}
+function logRows(){var o=[],mvs={};S.mv.forEach(function(m){if(m.type=="move"){var e=mvs[m.tid];if(!e){e=mvs[m.tid]=Object.assign({},m,{qty:0,from:0,to:0});o.push(e)}if(m.qty<0){e.qty-=m.qty;e.from=m.s||0}else e.to=m.s||0;return}var p=o[o.length-1];if(p&&p.type==m.type&&p.v==m.v&&p.lot==m.lot&&p.loc==m.loc&&p.ts==m.ts&&p.note==m.note&&p.user==m.user&&!p.pend==!m.pend&&p.op==m.op&&p.rv==m.rv&&(p.qty<0)==(m.qty<0)){p.qty+=m.qty;p.flag=p.flag||m.flag}else o.push(Object.assign({},m))});return o}
+/* reversing a mistaken movement: an opposite counter-entry linked to the original (the original stays in the log) */
+var RVK=null;
+function revInfo(){var d={},w={};S.mv.forEach(function(m){if(m.rv){if(!d[m.rv])d[m.rv]=m.ts}else if(m.op&&!w[m.op])w[m.op]=m.type+" of "+fmt(m.ts)});return{done:d,what:w}}
+function revDelta(op){var d={};S.mv.forEach(function(m){if(m.op==op&&!m.rv&&m.qty){var k=m.v+"|"+m.lot+"|"+m.loc;d[k]=(d[k]||0)-m.qty}});return d}
+function revAskHtml(x){var d=revDelta(x.op),parts=x.type=="move"?[esc(x.qty+" ctn back from "+SNAME(x.loc,x.to)+" to "+SNAME(x.loc,x.from)+" in "+LN(x.loc))]:Object.keys(d).filter(function(k){return d[k]}).map(function(k){var a=k.split("|");return(d[k]>0?"+":"")+d[k]+" in "+esc(LN(+a[2]))});
+ return'<div style="margin-top:8px"><span class="m">Reverse this '+esc(x.type)+'? It adds an opposite entry ('+parts.join(", ")+'). The original stays in the log, marked reversed.</span><label>Reason (optional)</label><input id="rvn" maxlength="500"><div style="display:flex;gap:8px;margin-top:8px"><button class="sm" data-op="'+esc(x.op)+'" onclick="doRev(this.dataset.op)">Confirm reverse</button><button class="sm" onclick="RVK=null;render()">Cancel</button></div></div>'}
+function doRev(op){var d=revDelta(op),bad=Object.keys(d).filter(function(k){var a=k.split("|");return d[k]<0&&cur(+a[0],a[1],+a[2])+d[k]<0});
+ if(bad.length){var a=bad[0].split("|");return fail("Can’t reverse: only "+cur(+a[0],a[1],+a[2])+" cartons left in "+LN(+a[2])+" and reversing takes "+(-d[bad[0]])+". The stock has moved on since, so recount it instead.")}
+ var f=S.mv.find(function(m){return m.op==op&&!m.rv});if(!f)return fail("That movement isn’t on the server yet.");var v=V(f.v),p=v&&P(v.prod);
+ queue({kind:"reverse",of:op,note:(($("rvn")||{}).value||"").trim(),product:p?p.name:"",colour:v?v.colour:"",size:v?v.size:"",qty:Math.abs(f.qty)});RVK=null;done("Reversed. The original stays in the log, marked reversed.")}
+function revLocal(o){S.mv.filter(function(m){return m.op==o.of&&!m.rv&&m.qty}).forEach(function(m){S.mv.push(Object.assign({},m,{qty:-m.qty,ts:o.ts,note:o.note||"",pend:1,user:"",flag:null,rv:o.of,op:o.uuid,tid:m.tid?o.uuid:m.tid,a:m.a||m.ts}))})}
+/* ledger rows per stock line, in time order; built once per state (S is replaced on every sync/queue) */
+function mvIdx(k){if(S._ix&&S._ixn===S.mv.length)return S._ix[k]||[];var ix={};S.mv.forEach(function(m,i){var kk=m.v+"|"+m.lot+"|"+m.loc;(ix[kk]=ix[kk]||[]).push({m:m,i:i})});
+ Object.keys(ix).forEach(function(kk){ix[kk].sort(function(x,y){return x.m.ts<y.m.ts?-1:x.m.ts>y.m.ts?1:x.i-y.i})});S._ix=ix;S._ixn=S.mv.length;return ix[k]||[]}
+/* what's on the shelf for one stock line, oldest first: [{s,a,q}] (same rule as the server: every carton keeps the date it first arrived, stock leaves oldest-first) */
+function pilesOf(v,lot,loc){var p={};
+ function pk(k){var i=k.indexOf("|");return{s:+k.slice(0,i),a:k.slice(i+1)}}
+ function ord(ks){return ks.sort(function(x,y){var X=pk(x),Y=pk(y);return X.a<Y.a?-1:X.a>Y.a?1:(p[x]-p[y])||(X.s-Y.s)})}
+ function take(n,ts){ord(Object.keys(p).filter(function(k){return p[k]>0})).some(function(k){var t=Math.min(n,p[k]);p[k]-=t;n-=t;return!n});if(n){var k="0|"+ts;p[k]=(p[k]||0)-n}}
+ mvIdx(v+"|"+lot+"|"+loc).forEach(function(x){var m=x.m;
+  if(m.qty>=0||m.a){var k=(m.s||0)+"|"+(m.a||m.ts);p[k]=(p[k]||0)+m.qty}else take(-m.qty,m.ts)});
+ Object.keys(p).filter(function(k){return p[k]<0}).forEach(function(k){var n=-p[k];delete p[k];take(n,pk(k).a)});
+ return ord(Object.keys(p).filter(function(k){return p[k]})).map(function(k){var x=pk(k);x.q=p[k];return x})}
+function secTot(v,lot,loc){var t={};pilesOf(v,lot,loc).forEach(function(x){var id=secs(loc).some(function(z){return z.id==x.s})?x.s:0;t[id]=(t[id]||0)+x.q});return t}
+function secSum(v,lot,loc){var t=secTot(v,lot,loc);return Object.keys(t).filter(function(k){return t[k]}).sort(function(a,b){return nat(SNAME(loc,+a),SNAME(loc,+b))}).map(function(k){return SNAME(loc,+k)+": "+t[k]}).join(" · ")}
+function dday(a){try{return new Date(a).toLocaleDateString([],{day:"numeric",month:"short",year:"numeric"})}catch(e){return""}}
+/* full-screen map: zones drawn as fractions of the picture; marks = {sectionId:{t:label,hot:1,home:1}} */
+var MV=null;
+function mapOpen(o){MV=o;mapDraw()}
+function mapClose(){MV=null;var e=$("mov");if(e)e.remove();if(window.ovLock)ovLock()}
+function mapBox(l,marks,pick,extra,sel){var z=l.secs||[];
+ return'<div class="mapb" id="'+(extra?"secc":"mapc")+'">'+(l.map?'<img src="'+esc(l.map)+'" alt="">':'<div style="padding-top:70%"></div>')+z.map(function(x,i){var m=marks[x.id]||{};return'<div class="zone'+(m.hot?" hot":"")+(m.home?" home":"")+(pick||sel?" pk":"")+(sel&&MV&&MV.to==x.id?" hot":"")+'" style="left:'+x.x*100+'%;top:'+x.y*100+'%;width:'+x.w*100+'%;height:'+x.h*100+'%'+(sel&&MV&&MV.to==x.id?';border:4px solid #fff':"")+'"'+(pick?' data-s="'+x.id+'" onclick="mapPick(+this.dataset.s)"':sel?' data-s="'+x.id+'" onclick="MV.to=+this.dataset.s;mapDraw()"':"")+'><span>'+esc(x.name)+(m.t?"<br><b>"+esc(m.t)+"</b>":"")+"</span></div>"}).join("")+(extra||"")+"</div>"}
+function mapDraw(){var o=$("mov");if(!o){o=document.createElement("div");o.id="mov";document.body.appendChild(o)}var l=LOC(MV.loc);
+ o.innerHTML='<div class="ghd"><div><b>'+esc(MV.title||l.name)+'</b>'+(MV.sub?'<div class="m" style="display:block">'+esc(MV.sub)+"</div>":"")+'</div><button class="sm" onclick="mapClose()">Close</button></div><div class="gbd">'+(!l.map?'<p class="m" style="display:block">No picture uploaded for this warehouse yet (Warehouses → Options → Sections &amp; map).</p>':"")+mapBox(l,MV.marks||{},!!MV.pick,"",!!(MV.mv||MV.bulk))+(MV.mv?mvForm():MV.bulk?bmForm():"")+(MV.foot||"")+"</div>"}
+function mapPick(id){var f=MV&&MV.pick;mapClose();if(f)f(id)}
+/* Stock: tap a warehouse line to see where that stock sits */
+function lineMap(v,lot,loc){var ps=pilesOf(v,lot,loc),t=secTot(v,lot,loc),mk={},vv=V(v),pid=vv.prod,hm=homeSec(pid,loc);
+ Object.keys(t).forEach(function(k){if(+k&&t[k])mk[k]={t:t[k]+" ctn",hot:t[k]>0}});if(hm){mk[hm]=mk[hm]||{};mk[hm].home=1}
+ var pos=ps.filter(function(x){return x.q>0});
+ var foot='<label>Oldest first (this is the order it should leave in)</label>'+(ps.length?ps.map(function(x,i){var id=secs(loc).some(function(z){return z.id==x.s})?x.s:0;return'<div class="gr"><span>'+esc(SNAME(loc,id))+' <span class="m" style="display:inline">· arrived '+esc(dday(x.a))+(x.q>0&&x===pos[0]?" · next out":"")+"</span></span><b"+(x.q<0?' style="color:var(--bad)"':"")+">"+x.q+"</b></div>"}).join(""):'<p class="m">Nothing here.</p>')+(hm?'<p class="m" style="display:block;margin-top:8px">Dashed outline = home section ('+esc(SNAME(loc,hm))+'), where new deliveries go by default.</p>':"");
+ var old=MV&&MV.mv&&MV.v==v&&MV.lot==lot&&MV.loc==loc?MV:null,fr=old?old.from:(t[0]>0?0:+(Object.keys(t).filter(function(k){return t[k]>0})[0]||0));
+ mapOpen({loc:loc,v:v,lot:lot,title:P(pid).name+" · "+bmName(v,""),sub:LN(loc)+(lot?" · lot "+lot:""),marks:mk,foot:foot,mv:1,tot:t,from:fr,q:old&&old.keepq?old.q:(t[fr]>0?String(t[fr]):""),to:old?old.to:0,note:old?old.note:"",err:"",home:!hm})}
+function mvForm(){var M=MV,loc=M.loc,t=M.tot,src=Object.keys(t).filter(function(k){return t[k]>0}).map(Number);if(!src.length)return"";
+ return'<div class="sub" style="display:block;margin-bottom:12px"><label style="margin-top:0">Move to another section</label>'+(M.note?'<div class="msg ok">'+esc(M.note)+"</div>":"")+(M.err?'<div class="msg err">'+esc(M.err)+"</div>":"")+
+  '<label>From</label><select onchange="MV.from=+this.value;MV.q=String(MV.tot[MV.from]||\'\');MV.keepq=0;mapDraw()">'+src.map(function(k){return'<option value="'+k+'"'+(k==M.from?" selected":"")+">"+esc(SNAME(loc,k))+" ("+t[k]+" ctn)</option>"}).join("")+"</select>"+
+  '<label>How many cartons</label><input id="mvq" inputmode="numeric" autocomplete="off" value="'+esc(M.q)+'" oninput="MV.q=this.value;MV.keepq=1">'+
+  '<label>To</label><select onchange="MV.to=+this.value;mapDraw()"><option value="0">'+(M.to?"":"Tap a section on the map, or pick here")+"</option>"+secs(loc).filter(function(z){return z.id!=M.from}).map(function(z){return'<option value="'+z.id+'"'+(z.id==M.to?" selected":"")+">"+esc(z.name)+"</option>"}).join("")+(M.from?'<option value="-1"'+(M.to==-1?" selected":"")+">Unsorted</option>":"")+"</select>"+
+  (M.to>0?'<label style="display:flex;gap:10px;align-items:center"><input type="checkbox" style="width:auto"'+(M.home?" checked":"")+' onchange="MV.home=this.checked"> Make '+esc(SNAME(loc,M.to))+" the home section for this item here</label>":"")+
+  '<button class="btn" onclick="mvGo()"'+(M.to?"":" disabled")+">"+(M.to?"Move to "+esc(M.to==-1?"Unsorted":SNAME(loc,M.to)):"Move")+"</button></div>"}
+function mvGo(){var M=MV,vv=V(M.v),q=qVal($("mvq")),have=M.tot[M.from]||0,to=M.to==-1?0:M.to;
+ if(isNaN(q)||q<1){M.err="Enter how many cartons to move.";return mapDraw()}if(q>have){M.err="Only "+have+" in "+SNAME(M.loc,M.from)+".";return mapDraw()}if(to==M.from){M.err="It's already there.";return mapDraw()}
+ queue({kind:"move",product:P(vv.prod).name,colour:vv.colour||"",size:vv.size||"",lot:M.lot,loc:M.loc,qty:q,from_section:M.from,section:to,home:!!(to&&M.home),note:""});
+ var n="Moved "+q+" from "+SNAME(M.loc,M.from)+" to "+SNAME(M.loc,to)+".";M.to=0;M.keepq=0;M.from=-99;MV=null;lineMap(M.v,M.lot,M.loc);if(MV){MV.note=n;mapDraw()}if(tab=="Stock"&&$("res"))$("res").innerHTML=stockHtml()}
+/* Stock: tick several lines of one item in one warehouse, then move them to a section together (one "move" op per line) */
+var BMV=null;
+function bmRes(){if($("res"))$("res").innerHTML=stockHtml()}
+function bmStart(pid){var p=P(pid);BMV={p:pid,loc:0,sel:{}};O["p"+pid]=true;
+ uniq(S.vars.filter(function(v){return v.prod==pid}).map(function(v){return v[p.grp=="size"?"size":"colour"]||""})).forEach(function(c){O[(p.grp=="size"?"z":"c")+pid+"|"+c]=true});bmRes()}
+function bmStop(){BMV=null;bmRes()}
+/* lines of the item that can take part: stock > 0 in a warehouse with sections (and, once one is ticked, only that warehouse) */
+function bmCan(){var pid=BMV.p;return rows().filter(function(x){return x.q>0&&V(x.v).prod==pid&&secs(x.loc).length&&(!wfv()||x.loc==wfv())})}
+function bmName(v,lot){var vv=V(v);return([vv.colour,vv.size].filter(Boolean).join(" · ")||"n/a")+(lot?" · lot "+lot:"")}
+function bmLine(x){var ok=x.q>0&&secs(x.loc).length&&(!BMV.loc||BMV.loc==x.loc),on=ok&&BMV.loc==x.loc&&!!BMV.sel[x.v+"|"+x.lot],
+ t=esc(LN(x.loc))+' · '+(x.lot?"lot "+esc(x.lot):"no lot")+' · '+(x.q?x.q:'<span style="color:var(--bad)">0</span>')+(secs(x.loc).length&&x.q?' · 📍 '+esc(secSum(x.v,x.lot,x.loc)):"");
+ return ok?'<span class="m bml" role="checkbox" aria-checked="'+on+'" data-v="'+x.v+'" data-lot="'+esc(x.lot)+'" data-loc="'+x.loc+'" onclick="event.stopPropagation();bmTog(+this.dataset.v,this.dataset.lot,+this.dataset.loc)"><input type="checkbox" tabindex="-1"'+(on?" checked":"")+'><span>'+t+"</span></span>":'<span class="m">'+t+"</span>"}
+function bmTog(v,lot,loc){var k=v+"|"+lot;if(BMV.loc&&BMV.loc!=loc)return;if(BMV.sel[k])delete BMV.sel[k];else BMV.sel[k]=1;BMV.loc=Object.keys(BMV.sel).length?loc:0;bmRes()}
+function bmAll(){var c=bmCan(),locs=uniq(c.map(function(x){return x.loc})),loc=BMV.loc||(locs.length==1?locs[0]:0);if(!loc)return;BMV.loc=loc;
+ var all=c.filter(function(x){return x.loc==loc}),every=all.every(function(x){return BMV.sel[x.v+"|"+x.lot]});BMV.sel={};
+ if(!every)all.forEach(function(x){BMV.sel[x.v+"|"+x.lot]=1});else BMV.loc=0;bmRes()}
+function bmSel(){if(!BMV||!BMV.loc)return[];return Object.keys(BMV.sel).map(function(k){var i=k.indexOf("|");return{v:+k.slice(0,i),lot:k.slice(i+1)}}).filter(function(x){return V(x.v)})}
+function bmBar(){if(!BMV||!P(BMV.p))return"";var sl=bmSel(),c=bmCan(),locs=uniq(c.map(function(x){return x.loc})),loc=BMV.loc||(locs.length==1?locs[0]:0),n=0;
+ sl.forEach(function(x){var t=secTot(x.v,x.lot,BMV.loc);Object.keys(t).forEach(function(k){if(t[k]>0)n+=t[k]})});
+ var all=loc&&c.filter(function(x){return x.loc==loc}),every=all&&all.length&&all.every(function(x){return BMV.loc==loc&&BMV.sel[x.v+"|"+x.lot]});
+ return'<div style="height:76px"></div><div id="bmbar"><div><div class="grow"><b>'+esc(P(BMV.p).name)+'</b><br>'+(sl.length?sl.length+" line"+(sl.length==1?"":"s")+" · "+n+" ctn · "+esc(LN(BMV.loc)):"Tick the lines to move")+"</div>"+
+  (loc?'<button class="sm" onclick="bmAll()">'+(every?"None":"All")+"</button>":"")+'<button class="sm" onclick="bmStop()">Cancel</button><button class="btn" onclick="bmOpen()"'+(sl.length?"":" disabled")+">Move…</button></div></div>"}
+/* the move screen: same map as a single line, with the selected lines' cartons summed per section */
+function bmOpen(){var sl=bmSel();if(!sl.length)return;var loc=BMV.loc,pid=BMV.p,hm=homeSec(pid,loc),tot={},mk={};
+ sl.forEach(function(x){x.t=secTot(x.v,x.lot,loc);Object.keys(x.t).forEach(function(k){tot[k]=(tot[k]||0)+x.t[k]})});
+ Object.keys(tot).forEach(function(k){if(+k&&tot[k])mk[k]={t:tot[k]+" ctn",hot:tot[k]>0}});if(hm){mk[hm]=mk[hm]||{};mk[hm].home=1}
+ var src=Object.keys(tot).filter(function(k){return tot[k]>0}).map(Number);
+ mapOpen({loc:loc,title:P(pid).name+" · "+sl.length+" line"+(sl.length==1?"":"s"),sub:LN(loc),marks:mk,bulk:1,lines:sl,tot:tot,from:tot[0]>0?0:(src[0]||0),to:0,home:!hm,err:""})}
+function bmForm(){var M=MV,loc=M.loc,t=M.tot,src=Object.keys(t).filter(function(k){return t[k]>0}).map(Number);if(!src.length)return'<p class="m">Nothing left to move.</p>';
+ var go=M.lines.filter(function(x){return x.t[M.from]>0}),stay=M.lines.length-go.length,n=go.reduce(function(a,x){return a+x.t[M.from]},0);
+ return'<div class="sub" style="display:block;margin-bottom:12px"><label style="margin-top:0">Move everything from</label>'+(M.err?'<div class="msg err">'+esc(M.err)+"</div>":"")+
+  '<select onchange="MV.from=+this.value;if(MV.to==MV.from)MV.to=0;mapDraw()">'+src.map(function(k){return'<option value="'+k+'"'+(k==M.from?" selected":"")+">"+esc(SNAME(loc,k))+" ("+t[k]+" ctn)</option>"}).join("")+"</select>"+
+  go.map(function(x){return'<div class="gr"><span>'+esc(bmName(x.v,x.lot))+"</span><b>"+x.t[M.from]+"</b></div>"}).join("")+
+  (stay?'<p class="m" style="display:block;margin-top:6px">'+stay+" selected line"+(stay==1?" has":"s have")+" nothing in "+esc(SNAME(loc,M.from))+" and stay"+(stay==1?"s":"")+" where "+(stay==1?"it is":"they are")+".</p>":"")+
+  '<label>To</label><select onchange="MV.to=+this.value;mapDraw()"><option value="0">'+(M.to?"":"Tap a section on the map, or pick here")+"</option>"+secs(loc).filter(function(z){return z.id!=M.from}).map(function(z){return'<option value="'+z.id+'"'+(z.id==M.to?" selected":"")+">"+esc(z.name)+"</option>"}).join("")+(M.from?'<option value="-1"'+(M.to==-1?" selected":"")+">Unsorted</option>":"")+"</select>"+
+  (M.to>0?'<label style="display:flex;gap:10px;align-items:center"><input type="checkbox" style="width:auto"'+(M.home?" checked":"")+' onchange="MV.home=this.checked"> Make '+esc(SNAME(loc,M.to))+" the home section for this item here</label>":"")+
+  '<button class="btn" id="bmgo" onclick="bmGo()"'+(M.to&&n?"":" disabled")+">"+(M.to?"Move "+n+" ctn to "+esc(M.to==-1?"Unsorted":SNAME(loc,M.to)):"Move")+"</button></div>"}
+function bmGo(){var M=MV,to=M.to==-1?0:M.to,pid=BMV&&BMV.p;if(!M.to){M.err="Pick where they go.";return mapDraw()}if(to==M.from){M.err="They're already there.";return mapDraw()}
+ var go=M.lines.filter(function(x){return x.t[M.from]>0}),n=0,first=true;if(!go.length){M.err="Nothing in "+SNAME(M.loc,M.from)+" to move.";return mapDraw()}
+ go.forEach(function(x){var vv=V(x.v),q=x.t[M.from];n+=q;queue({kind:"move",product:P(vv.prod).name,colour:vv.colour||"",size:vv.size||"",lot:x.lot,loc:M.loc,qty:q,from_section:M.from,section:to,home:!!(to&&M.home&&first),note:""});first=false});
+ var t="Moved "+n+" ctn ("+go.length+" line"+(go.length==1?"":"s")+") from "+SNAME(M.loc,M.from)+" to "+SNAME(M.loc,to)+".";mapClose();BMV=null;done(t)}
+/* Receive: section field (same autofill style as colour/size) + map */
+var SECAUTO=true;
+function secField(){var w=$("secw");if(!w)return;var loc=+$("loc").value;if(!secs(loc).length){w.innerHTML="";return}
+ /* a native picker, like the warehouse one: sections are fixed per warehouse, so there is nothing to type (owner request 2026-11-26) */
+ var old=$("sec")?$("sec").value:"";w.innerHTML='<label for="sec">Section</label><div class="inl"><select id="sec" onchange="SECAUTO=false;secHint()"><option value="">Unsorted</option>'+secs(loc).map(function(z){return z.name}).sort(nat).map(function(n){return'<option value="'+esc(n)+'">'+esc(n)+"</option>"}).join("")+'</select><button class="ic" type="button" aria-label="Pick the section on the map" onclick="secMap()">🗺️</button></div><div class="m" id="sech" style="display:block"></div>';
+ if(old&&!SECAUTO&&secs(loc).some(function(z){return z.name.toLowerCase()==old.trim().toLowerCase()}))$("sec").value=old;else{SECAUTO=true;secAuto()}secHint()}
+function secAuto(){var e=$("sec");if(!e||!SECAUTO)return;var loc=+$("loc").value,p=curP(),h=p?homeSec(p,loc):0;e.value=h?SNAME(loc,h):"";secHint()}
+function itemSecs(pid,loc){var t={};S.vars.filter(function(v){return v.prod==pid}).forEach(function(v){uniq(S.mv.filter(function(m){return m.v==v.id&&m.loc==loc}).map(function(m){return m.lot})).forEach(function(lot){var x=secTot(v.id,lot,loc);Object.keys(x).forEach(function(k){t[k]=(t[k]||0)+x[k]})})});return t}
+function secHint(){var e=$("sech");if(!e)return;var loc=+$("loc").value,p=curP(),h=p?homeSec(p,loc):0,t=p?itemSecs(p,loc):{};
+ var where=Object.keys(t).filter(function(k){return t[k]>0}).sort(function(a,b){return nat(SNAME(loc,+a),SNAME(loc,+b))}).map(function(k){return SNAME(loc,+k)+": "+t[k]});
+ e.textContent=(h?"Home section: "+SNAME(loc,h)+". ":p?"No home section yet: the first section you receive it into becomes its home. ":"")+(where.length?"Already here: "+where.join(" · "):"")}
+function secMap(){var loc=+$("loc").value,p=curP(),t=p?itemSecs(p,loc):{},h=p?homeSec(p,loc):0,mk={};
+ Object.keys(t).forEach(function(k){if(+k&&t[k]>0)mk[k]={t:t[k]+" ctn",hot:1}});if(h){mk[h]=mk[h]||{};mk[h].home=1}
+ mapOpen({loc:loc,sub:"Tap the section you're putting it in"+(p?" · orange = already holds "+P(p).name:""),marks:mk,pick:function(id){$("sec").value=SNAME(loc,id);SECAUTO=false;secHint()}})}
+/* section id for the receive form; null (and a message) if the name isn't a section here */
+function secOf(loc){var e=$("sec");if(!e||!secs(loc).length)return 0;var n=e.value.trim();if(!n)return 0;var z=secs(loc).find(function(x){return x.name.toLowerCase()==n.toLowerCase()});
+ if(!z){fail("There's no section called “"+n+"” in "+LN(loc)+". Pick one from the list or the map, or leave it blank for Unsorted. Nothing was saved.",["sec"]);return null}return z.id}
+/* Warehouses → Sections & map editor */
+var SE=null;
+function secOpen(id){var l=LOC(id);SE={loc:id,on:!!l.hs,map:l.map,secs:(l.secs||[]).map(function(z){return{id:z.id,name:z.name,x:z.x,y:z.y,w:z.w,h:z.h}}),draw:null,err:"",busy:""};secDraw()}
+function secClose(){SE=null;var e=$("sed");if(e)e.remove();if(window.ovLock)ovLock()}
+function secNext(){var u={};SE.secs.forEach(function(z){u[z.name.toUpperCase()]=1});for(var i=0;i<26;i++){var c=String.fromCharCode(65+i);if(!u[c])return c}return"S"+(SE.secs.length+1)}
+function secDraw(){var o=$("sed");if(!o){o=document.createElement("div");o.id="sed";document.body.appendChild(o)}var l=LOC(SE.loc),fake={map:SE.map,secs:SE.secs.map(function(z,i){return{id:"i"+i,name:z.name,x:z.x,y:z.y,w:z.w,h:z.h}})};
+ var dn=SE.draw===null?"":SE.draw=="new"?secNext():SE.secs[SE.draw].name,A=SE.adj,an=A?(A.i=="new"?secNext():SE.secs[A.i].name):"";
+ if(A)fake.secs=fake.secs.filter(function(z,i){return i!==A.i});
+ o.innerHTML='<div class="ghd"><div><b>Sections · '+esc(l.name)+'</b><div class="m" style="display:block">Draw each section on the picture</div></div><button class="sm" onclick="secClose()">Cancel</button></div><div class="gbd">'+
+  (SE.err?'<div class="msg err">'+esc(SE.err)+"</div>":"")+
+  '<label style="display:flex;gap:10px;align-items:center;margin-top:0"><input type="checkbox" style="width:auto" '+(SE.on?"checked":"")+' onchange="SE.on=this.checked"> This warehouse uses sections</label>'+
+  '<label>Map picture (photo or plan of the floor)</label><input type="file" accept="image/*" onchange="secPic(this)">'+(SE.busy?'<p class="m" style="display:block">'+esc(SE.busy)+"</p>":"")+
+  (SE.draw!==null?'<div class="msg ok">Drag a box on the picture for section <b>'+esc(dn)+'</b>. <button class="sm" onclick="SE.draw=null;secDraw()">Stop</button></div>':"")+
+  (A?'<div class="msg ok">Adjusting <b>'+esc(an)+'</b>: drag the orange handles to move each side, or drag the middle to move the whole box.<div style="margin-top:8px;display:flex;gap:8px"><button class="sm" onclick="secAdjOk()">Confirm</button><button class="sm" onclick="SE.adj=null;secDraw()">Cancel</button></div></div>':"")+
+  mapBox(fake,{},false,A?'<div id="secadj" class="zone adj" style="left:'+A.b.x*100+'%;top:'+A.b.y*100+'%;width:'+A.b.w*100+'%;height:'+A.b.h*100+'%"><span>'+esc(an)+'</span><div class="hd n" data-h="n"></div><div class="hd s" data-h="s"></div><div class="hd w" data-h="w"></div><div class="hd e" data-h="e"></div></div>':'<div id="secnew" class="zone hot" style="display:none"></div>').replace('class="mapb"','class="mapb'+(SE.draw!==null?" drw":A?" adjm":"")+'"')+
+  SE.secs.map(function(z,i){return'<div class="gr"><input value="'+esc(z.name)+'" oninput="SE.secs['+i+'].name=this.value" aria-label="Section name"><button class="sm" onclick="secAdj('+i+')">Adjust</button><button class="sm" onclick="SE.adj=null;SE.draw='+i+';secDraw()">Redraw</button><button class="sm" aria-label="Remove section" onclick="SE.adj=null;SE.secs.splice('+i+',1);secDraw()">✕</button></div>'}).join("")+
+  '<button class="sm" style="margin-top:10px" onclick="SE.adj=null;SE.draw=\'new\';secDraw()">+ Draw a new section</button><p class="m" style="display:block;margin-top:10px">No picture? You can still draw boxes on the blank area. Removing a section that still holds stock is refused until it is moved.</p></div>'+
+  '<div class="gft"><button class="btn" onclick="secSave()">Save sections</button></div>';
+ if(SE.draw!==null)secDrag();if(A)secAdjDrag()}
+function secDrag(){var c=$("secc"),n=$("secnew"),st=null;if(!c)return;
+ function at(ev){var r=c.getBoundingClientRect();return{x:Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),y:Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height))}}
+ function box(a,b){return{x:Math.min(a.x,b.x),y:Math.min(a.y,b.y),w:Math.abs(a.x-b.x),h:Math.abs(a.y-b.y)}}
+ c.addEventListener("pointerdown",function(ev){ev.preventDefault();st=at(ev);try{c.setPointerCapture(ev.pointerId)}catch(e){}n.style.display="block";n.style.left=st.x*100+"%";n.style.top=st.y*100+"%";n.style.width=n.style.height="0"});
+ c.addEventListener("pointermove",function(ev){if(!st)return;var b=box(st,at(ev));n.style.left=b.x*100+"%";n.style.top=b.y*100+"%";n.style.width=b.w*100+"%";n.style.height=b.h*100+"%"});
+ c.addEventListener("pointerup",function(ev){if(!st)return;var b=box(st,at(ev));st=null;if(b.w<0.03||b.h<0.03){n.style.display="none";return}
+  SE.adj={i:SE.draw,b:b};SE.draw=null;SE.on=true;secDraw()})}
+function secAdj(i){var z=SE.secs[i];SE.draw=null;SE.adj={i:i,b:{x:z.x,y:z.y,w:z.w,h:z.h}};secDraw();var c=$("secc");if(c)c.scrollIntoView({block:"center"})}
+function secAdjOk(){var A=SE.adj;if(!A)return;if(A.i=="new")SE.secs.push({name:secNext(),x:A.b.x,y:A.b.y,w:A.b.w,h:A.b.h});else Object.assign(SE.secs[A.i],A.b);SE.adj=null;secDraw()}
+/* move one side (handle) or the whole box; every change is kept inside the picture and at least 2% big */
+function secAdjDrag(){var c=$("secc"),z=$("secadj"),md=null,p0,b0,MIN=0.02;if(!c||!z)return;
+ function at(ev){var r=c.getBoundingClientRect();return{x:(ev.clientX-r.left)/r.width,y:(ev.clientY-r.top)/r.height}}
+ function cl(v,a,b){return Math.min(b,Math.max(a,v))}
+ c.addEventListener("pointerdown",function(ev){var h=ev.target.closest(".hd");if(h)md=h.dataset.h;else if(ev.target.closest("#secadj"))md="m";else return;ev.preventDefault();p0=at(ev);b0=Object.assign({},SE.adj.b);try{c.setPointerCapture(ev.pointerId)}catch(e){}});
+ c.addEventListener("pointermove",function(ev){if(!md)return;ev.preventDefault();var p=at(ev),dx=p.x-p0.x,dy=p.y-p0.y,b=Object.assign({},b0),r,bt;
+  if(md=="m"){b.x=cl(b0.x+dx,0,1-b0.w);b.y=cl(b0.y+dy,0,1-b0.h)}
+  else if(md=="n"){bt=b0.y+b0.h;b.y=cl(b0.y+dy,0,bt-MIN);b.h=bt-b.y}
+  else if(md=="s"){b.h=cl(b0.h+dy,MIN,1-b0.y)}
+  else if(md=="w"){r=b0.x+b0.w;b.x=cl(b0.x+dx,0,r-MIN);b.w=r-b.x}
+  else if(md=="e"){b.w=cl(b0.w+dx,MIN,1-b0.x)}
+  SE.adj.b=b;z.style.left=b.x*100+"%";z.style.top=b.y*100+"%";z.style.width=b.w*100+"%";z.style.height=b.h*100+"%"});
+ function up(){md=null}c.addEventListener("pointerup",up);c.addEventListener("pointercancel",up)}
+function secPic(inp){var f=inp.files&&inp.files[0];if(!f)return;SE.busy="Uploading picture…";SE.err="";secDraw();
+ toBlob(f,async function(b){if(!b){SE.busy="";SE.err="That picture couldn’t be read.";return secDraw()}
+  try{var fd=new FormData();fd.append("file",b,"map.jpg");var r=await http("/api/location/"+SE.loc+"/map",{method:"POST",body:fd},30000);SE.map=r.map;var l=LOC(SE.loc);if(l)l.map=r.map;SE.busy=""}catch(e){SE.busy="";SE.err="Upload failed: "+e.message}secDraw()})}
+async function secSave(){if(SE.draw!==null){SE.draw=null}if(SE.adj)secAdjOk();var bad=SE.secs.filter(function(z){return!z.name.trim()});if(bad.length){SE.err="Every section needs a name.";return secDraw()}
+ try{var n=SE.loc;await post("/api/location/"+n+"/sections",{on:SE.on,sections:SE.secs});SV=await http("/api/state");persist();rebuild();secClose();done("Saved sections for "+LN(n)+".")}catch(e){SE.err="Couldn’t save: "+e.message;secDraw()}}
+
+/* ---------- a photo per colour (printed designs; switched on per item) ---------- */
+function cphU(pid,col){var c=String(col||"").toLowerCase(),x=(S.cph||[]).find(function(z){return z[0]==pid&&z[1].toLowerCase()==c});return x?x[2]:null}
+function cphThumb(pid,col){var u=cphU(pid,col),k=phMark((P(pid)||{}).name,col);return u?'<img class="th" style="width:44px;height:44px;margin-right:10px;vertical-align:middle"'+phOut(k)+' src="'+esc(u)+'" data-p="'+pid+'" data-c="'+esc(col)+'" onclick="event.stopPropagation();cphZoom(+this.dataset.p,this.dataset.c)">':'<button class="ph" style="margin-right:10px" data-p="'+pid+'" data-c="'+esc(col)+'"'+phOut(k)+' onclick="event.stopPropagation();cphPick(+this.dataset.p,this.dataset.c)">+ photo</button>'}
+function photoFile(cb){pickImg(function(f){readPhoto(f,cb)})}
+function cphPick(pid,col){var p=P(pid);if(!p||pid<0)return fail("This item hasn’t synced yet.");photoFile(function(d){queue({kind:"photo",product:p.name,colour:col,data:d});done("Photo added for "+col+". The bar at the top shows when it has uploaded.")})}
+function cphZoom(pid,col){var u=cphU(pid,col);if(!u)return;var o=document.createElement("div");o.id="ov";o.style.flexDirection="column";o.style.gap="14px";o.onclick=function(){o.remove()};
+ o.innerHTML='<img src="'+esc(u)+'"><div style="color:#fff;font-size:17px">'+esc(P(pid).name)+" · "+esc(col)+'</div><button class="sm" data-p="'+pid+'" data-c="'+esc(col)+'" onclick="event.stopPropagation();this.parentNode.remove();cphPick(+this.dataset.p,this.dataset.c)">Change photo</button>';document.body.appendChild(o)}
+/* Receive: the colour's photo, or a button to add one (saved with the receive) */
+var CPHP=null;
+function cphDraw(){var w=$("cphw");if(!w)return;var pid=curP(),p=pid&&P(pid),col=$("col")?$("col").value.trim():"";if(!p||!p.cp||!col){w.innerHTML="";return}
+ var pend=CPHP&&CPHP.n.toLowerCase()==p.name.toLowerCase()&&CPHP.c.toLowerCase()==col.toLowerCase(),u=pend?CPHP.d:cphU(pid,col);
+ w.innerHTML='<label>Photo of '+esc(col)+'</label><div style="display:flex;gap:10px;align-items:center">'+(u?'<img class="th" src="'+esc(u)+'">':"")+'<button class="sm" type="button" onclick="cphNew()">'+(u?"Change photo":"📷 Add a photo of this colour")+"</button>"+(pend?'<span class="m" style="display:inline">saved with this receive</span>':"")+"</div>"}
+function cphNew(){var pid=curP(),col=$("col").value.trim();if(!pid||!col)return;photoFile(function(d){CPHP={n:P(pid).name,c:col,d:d};cphDraw()})}
+function gPh(i){photoFile(function(d){G.rows[i].ph=d;gridDraw()})}
+
+/* ---------- pending items: set up now, receive later ---------- */
+var PREP=false;
+function prepUpd(){document.querySelectorAll(".rcvonly").forEach(function(e){e.style.display=PREP?"none":""});rbUpd()}
+function prepSave(more){var nm=$("nm").value.trim();if(!nm)return fail("Please double-check: item name missing. Nothing was saved.",["nm"]);
+ if(!$("col").value.trim()&&!$("sz").value.trim()&&byName(nm))return fail("Nothing new to set up: add a colour and/or size.",["col"]);
+ var pr=PSEL&&P(PSEL)?P(PSEL):byName(nm),name=pr?pr.name:nm,col=$("col").value.trim(),sz=$("sz").value.trim();
+ if(limBad({product:nm,alias:$("al").value.trim(),colour:col,size:sz,pack:$("ppc").value.trim()}))return;
+ queue({kind:"prepare",product:name,alias:$("al").value.trim(),pack:$("ppc").value.trim(),colour:col,size:sz});
+ if(CPHP&&col&&CPHP.c.toLowerCase()==col.toLowerCase()&&CPHP.n.toLowerCase()==name.toLowerCase())queue({kind:"photo",product:name,colour:col,data:CPHP.d});CPHP=null;
+ if(PH){queue({kind:"photo",product:name,data:PH});PH=null}
+ var what=name+(col?" · "+col:"")+(sz?" · "+sz:"");
+ if(more){$("col").value="";$("sz").value="";okMsg("Set up "+what+". Next colour/size:");chips();$("col").focus();return}
+ PSEL=null;done("Set up "+what+(pr&&!pr.pend?".":" as a pending item. It shows under Pending on Stock until you receive it."))}
+function gExists(c){return!!(G.pid&&findV(G.pid,G.by=="size"?G.col:c,G.by=="size"?c:G.sz))}
+function gridPrep(){var g=G,gn=gNew();if(gn)g.rows.push({c:gn,q:""});var nw=g.rows.filter(function(r){return!gExists(r.c)});if(!nw.length)return;
+ nw.forEach(function(r){queue({kind:"prepare",product:g.name,alias:g.alias,pack:g.pack,colour:g.by=="size"?g.col:r.c,size:g.by=="size"?r.c:g.sz})});
+ if(g.by!="size")g.rows.forEach(function(r){if(r.ph)queue({kind:"photo",product:g.name,colour:r.c,data:r.ph})});
+ gridClose();PSEL=null;RM="";done("Set up "+nw.length+" "+(g.by=="size"?"size":"colour")+(nw.length>1?"s":"")+" of "+g.name+". Nothing received yet.")}
+function pendAct(id){var p=P(id);if(!p||id<0)return fail("This item hasn’t synced yet.");call(function(){return post("/api/product/"+id,{name:p.name,pending:false})},p.name+" is active. It shows with 0 until you receive stock.")}
+function hasMv(id){return S.mv.some(function(m){var v=V(m.v);return v&&v.prod==id})}
+function pendBack(id){var p=P(id);if(!p||id<0)return fail("This item hasn’t synced yet.");if(hasMv(id))return fail(p.name+" already has stock history, so it can’t go back to pending.");call(function(){return post("/api/product/"+id,{name:p.name,pending:true})},p.name+" is back under Pending. Receive it when the stock arrives.")}
+function pendRcv(id){PREP=false;go("Receive");pickP(id)}
+</script></body></html>
