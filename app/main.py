@@ -86,9 +86,19 @@ def _host_ok(host):
         return False
 
 
+# The app's own artwork and manifest, identical to the public repo. iOS fetches the home-screen icon in a separate request that
+# may come without the Tailscale identity, and Unraid fetches the container icon from the server itself; a refused
+# icon makes iOS draw a plain letter instead. These hold no data, so they skip the login checks (not the host check).
+ICONS = {"/icon-180.png", "/icon-192.png", "/icon-512.png", "/icon-maskable-512.png", "/favicon.ico", "/favicon-32.png",
+         "/apple-touch-icon.png", "/apple-touch-icon-precomposed.png", "/manifest.webmanifest"}
+
+
 @app.middleware("http")
 async def gate(request: Request, call_next):
-    if request.url.path != "/api/health":
+    if request.url.path in ICONS:
+        if not _host_ok(request.headers.get("host")):
+            return JSONResponse({"detail": "Unknown host name"}, status_code=403)
+    elif request.url.path != "/api/health":
         if not _host_ok(request.headers.get("host")):  # a page on some other domain pointed at this server (DNS rebinding)
             return JSONResponse({"detail": "Unknown host name"}, status_code=403)
         login = request.headers.get("tailscale-user-login", "").strip().lower()
@@ -121,7 +131,8 @@ async def gate(request: Request, call_next):
     # tricks, and forms can only post back here.
     resp.headers.setdefault("Content-Security-Policy", "frame-ancestors 'none'; base-uri 'none'; object-src 'none'; form-action 'self'")
     resp.headers.setdefault("Referrer-Policy", "no-referrer")  # links out never tell the other site this server's address
-    resp.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")  # other sites can't load photos, maps or PDFs from here
+    # other sites can't load photos, maps or PDFs from here; the icons may be loaded from anywhere (iOS, Unraid)
+    resp.headers.setdefault("Cross-Origin-Resource-Policy", "cross-origin" if request.url.path in ICONS else "same-origin")
     return resp
 
 
@@ -1549,6 +1560,12 @@ def _stamped(name, media):
 @app.get("/index.html")
 def index():
     return _stamped("index.html", "text/html")
+
+
+@app.get("/apple-touch-icon.png")
+@app.get("/apple-touch-icon-precomposed.png")
+def touch_icon():  # iOS asks for these by default when a page names no icon it can load
+    return FileResponse(os.path.join(STATIC, "icon-180.png"), media_type="image/png")
 
 
 @app.get("/sw.js")

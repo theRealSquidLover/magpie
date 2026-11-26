@@ -1243,6 +1243,13 @@ def test_robust_quantities_gate_backups_photos(cl, monkeypatch):
     monkeypatch.setattr(main, "_local_ip", lambda h: True)
     assert cl.get("/api/state").status_code == 200  # local network without a login
     assert cl.get("/api/health", headers={"tailscale-user-login": "someone@github"}).status_code == 200  # health always answers
+    monkeypatch.setattr(main, "_local_ip", lambda h: False)
+    monkeypatch.setattr(main, "REQUIRE_TS", True)
+    for icon in ("/icon-180.png", "/icon-512.png", "/apple-touch-icon.png", "/favicon.ico", "/manifest.webmanifest"):  # iOS/Unraid fetch icons without a login
+        r = cl.get(icon)
+        assert r.status_code == 200 and r.headers["content-type"].split("/")[0] in ("image", "application") and r.headers["cross-origin-resource-policy"] == "cross-origin", icon
+    assert cl.get("/api/state").status_code == 403 and cl.get("/").status_code == 403
+    assert cl.get("/icon-180.png", headers={"host": "evil.example.com"}).status_code == 403
     monkeypatch.undo()
     # a resent photo (answer lost) is saved once
     sync(cl, op("receive", "ph0", product="Photo Once", colour="Red", qty=1))
