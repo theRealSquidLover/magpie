@@ -46,6 +46,7 @@ async def _daily_backup():
 @asynccontextmanager
 async def lifespan(app):
     os.umask(0o077)  # every file the app writes (database, backups, photos, maps) is readable by its own user only
+    lock = db.hold_lock()  # tells `python -m app.restore` that the database is in use
     db.migrate()
     os.makedirs(PHOTOS, exist_ok=True)
     db.lock_down()  # and the same for files written before this version
@@ -54,6 +55,8 @@ async def lifespan(app):
     yield
     tg.stop()
     task.cancel()
+    if lock:
+        lock.close()
 
 
 app = FastAPI(title="Magpie", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
@@ -220,33 +223,78 @@ def state(request: Request):
 def piles(c, vid, lot, loc):
     """What's on the shelf for one stock line, as {(section_id, arrived): cartons}.
     Every carton keeps the date it was first received; stock going out is taken oldest-first.
+
+    The rows are replayed in the order the server applied them (by id, not by their typed time), so at every row the
+    piles are exactly what the server saw when it wrote that row, and a later row can never re-decide where earlier
+    cartons are. More going out than the line holds is a debt, shown as a negative pile in Unsorted. A debt is paid off
+    for good the moment stock arrives (oldest debt first, from the oldest stock), and what paid it is remembered:
+    reversing the operation that ran up the debt gives those cartons back to the piles that paid it.
+    A row taking out cartons that are no longer in its own pile (the reversal of a receive after the cartons were moved
+    on) follows them to piles with the same arrival date first, then takes the oldest stock there.
+
     Rows from before sections existed carry no arrival date: incoming ones are dated by their own time,
-    outgoing ones are worked out oldest-first here (the same rule new rows are written with).
+    outgoing ones are taken oldest-first (the same rule new rows are written with).
     A row whose section no longer exists in this warehouse counts as Unsorted (0), the same as the app shows it, so stock
     left on a deleted section by an older version can still be moved or sold from Unsorted. (Section ids are never reused
     since migration 17, so such a row can't turn up in a new section later.)"""
-    p = {}
+    p = {}  # (section, arrived) -> cartons there; never below zero
+    debts = []  # [operation, (0, arrived), cartons still owed, [[pile that paid, cartons], ...]], oldest first
     live = {r[0] for r in c.execute("SELECT id FROM sections WHERE location_id=?", (loc,))}
 
-    def take(n, ts):
-        for k in sorted((k for k, v in p.items() if v > 0), key=lambda k: (k[1], p[k], k[0])):
+    def take(n, only=lambda k: True):
+        """Take up to n cartons from the stock there, oldest first (the smaller pile first on the same date).
+        Returns [[pile, cartons], ...] taken and how many could not be taken."""
+        got = []
+        for k in sorted((k for k, v in p.items() if v > 0 and only(k)), key=lambda k: (k[1], p[k], k[0])):
+            if not n:
+                break
             t = min(n, p[k])
             p[k] -= t
             n -= t
-            if not n:
-                return
-        p[(0, ts)] = p.get((0, ts), 0) - n
+            got.append([k, t])
+        return got, n
 
-    for r in c.execute("SELECT qty, section_id, arrived, ts FROM movements WHERE variant_id=? AND lot=? AND location_id=? ORDER BY ts, id",
-                       (vid, lot, loc)):
-        if r["qty"] >= 0 or r["arrived"]:
+    def settle():  # stock has arrived: pay every open debt from it, oldest debt first
+        for d in sorted((d for d in debts if d[2]), key=lambda d: d[1][1]):
+            got, d[2] = take(d[2])
+            d[3] += got
+
+    def give_back(op, k, q):  # a reversal of `op` puts q back at k: first cancel what op still owes there, then refund what paid it
+        for d in reversed([d for d in debts if d[0] == op and d[1][1] == k[1]]):
+            f = min(q, d[2])
+            d[2] -= f
+            q -= f
+            while q and d[3]:
+                pk, n = d[3][-1]
+                t = min(q, n)
+                p[pk] = p.get(pk, 0) + t
+                q -= t
+                d[3][-1][1] -= t
+                if not d[3][-1][1]:
+                    d[3].pop()
+        return q
+
+    for r in c.execute("SELECT qty, section_id, arrived, ts, reverses, uuid, transfer_id FROM movements"
+                       " WHERE variant_id=? AND lot=? AND location_id=? ORDER BY id", (vid, lot, loc)):
+        q = r["qty"]
+        if q > 0:
             k = (r["section_id"] if r["section_id"] in live else 0, r["arrived"] or r["ts"])
-            p[k] = p.get(k, 0) + r["qty"]
-        else:
-            take(-r["qty"], r["ts"])
-    for k in [k for k, v in p.items() if v < 0]:  # stock that went below zero is settled against whatever is there
-        n = -p.pop(k)
-        take(n, k[1])
+            if r["reverses"]:
+                q = give_back(r["reverses"], k, q)
+            p[k] = p.get(k, 0) + q
+            settle()
+        elif q < 0:
+            n = -q
+            if r["arrived"]:  # taken from its own pile, then from where those cartons were moved to (same arrival date)
+                k = (r["section_id"] if r["section_id"] in live else 0, r["arrived"])
+                t = min(n, p.get(k, 0))
+                p[k] = p.get(k, 0) - t
+                n = take(n - t, lambda x: x[1] == k[1])[1]
+            n = take(n)[1]  # then (and for a row from before sections, only) the oldest stock there
+            if n:  # not there at all: the line goes below zero
+                debts.append([_op_of(r), (0, r["arrived"] or r["ts"]), n, []])
+    for d in debts:
+        p[d[1]] = p.get(d[1], 0) - d[2]
     return {k: v for k, v in p.items() if v}
 
 
@@ -1382,6 +1430,7 @@ def _pdf_item(c, p, col, size, lot, zero, cnt, locs, upd, tot, split, dis, ss, d
             body.append(pre + cells + ([tg.local_day(LT.get(k) or LT2.get(k[:2])) if (k in LT or k[:2] in LT2) else "-"] if upd else []) + [sum(G[k].values())] + ([""] if cnt else []))
         tc = len(head) - (2 if cnt else 1)  # the Total column: bold on every row (no grand-total line at the bottom)
         extra = [("FONTNAME", (tc, 1), (tc, -1), "Helvetica-Bold")]
+        runs = []
         if npre >= 2:  # same colour (or size) over several rows: one merged cell, a thick line where the next one starts
             i = 0
             while i < len(lead_vals):
@@ -1390,13 +1439,11 @@ def _pdf_item(c, p, col, size, lot, zero, cnt, locs, upd, tot, split, dis, ss, d
                     j += 1
                 if i > 0 and lead_vals[i - 1][0] != lead_vals[i][0]:
                     extra.append(("LINEABOVE", (0, i + 1), (-1, i + 1), 1.8, colors.black))
-                for a in range(i, j + 1, 20):  # a merged cell can't break across pages: keep each one to 20 rows
-                    z = min(a + 19, j)
-                    if z > a:
-                        extra.append(("SPAN", (0, a + 1), (0, z + 1)))
+                if j > i:
+                    runs.append((i + 1, j + 1))  # table rows (row 0 is the heading); _fit_table merges them
                 i = j + 1
             extra.append(("VALIGN", (0, 1), (0, -1), "MIDDLE"))
-        t = _fit_table([head] + body, npre, [("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3c3c3c")),
+        t = _fit_table([head] + body, npre, runs=runs, style=[("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3c3c3c")),
                                              ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
                                              ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
                                              ("ALIGN", (npre, 0), (-1, -1), "RIGHT")] +
@@ -1418,13 +1465,25 @@ def _pdf_item(c, p, col, size, lot, zero, cnt, locs, upd, tot, split, dis, ss, d
 PAGE_W = (595.27 - 72, 841.89 - 72)  # usable width of an A4 page with 36pt margins: portrait, landscape
 
 
-def _fit_table(data, npre, style):
+SPAN_MAX_H = 250  # points: a merged cell is never taller than this, well under half a landscape page (511pt frame)
+
+
+def _fit_table(data, npre, style, runs=()):
     """A stock table that fits the page. Portrait when it fits at the normal 9pt, else landscape; when even landscape is
     too narrow (many warehouses, long colours or lots), the font gets smaller and the leading Colour/Size/Lot columns wrap
-    their text inside a narrower column, until every column, Total included, is on the page."""
+    their text inside a narrower column, until every column, Total included, is on the page.
+    runs: (first row, last row) ranges whose first column shows the same value, merged into one cell. reportlab can't
+    break a merged cell across pages (a taller one fails the whole PDF), so each run is merged in pieces of at most
+    SPAN_MAX_H, measured on the final rows (wrapped cells make rows two or three lines tall)."""
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.pdfbase.pdfmetrics import stringWidth
     from reportlab.platypus import Paragraph, Table, TableStyle
+
+    def make(rows, widths, fs, pad, more=()):
+        t = Table(rows, colWidths=widths, repeatRows=1, hAlign="LEFT")
+        t.setStyle(TableStyle([("FONTSIZE", (0, 0), (-1, -1), fs), ("LEADING", (0, 0), (-1, -1), fs + 2 if fs < 9 else 12),
+                               ("LEFTPADDING", (0, 0), (-1, -1), pad), ("RIGHTPADDING", (0, 0), (-1, -1), pad)] + style + list(more)))
+        return t
 
     t = None
     for fs, cap, pad in ((9, None, 6), (8, None, 6), (8, 120, 4), (7, 100, 3), (6, 80, 2), (6, 60, 2), (5, 50, 1.5)):
@@ -1439,20 +1498,29 @@ def _fit_table(data, npre, style):
                 widths[i] = min(cap, widths[i])
                 for r in rows[1:]:
                     r[i] = Paragraph(_x(r[i]), ps)
-        t = Table(rows, colWidths=widths, repeatRows=1, hAlign="LEFT")
-        t.setStyle(TableStyle([("FONTSIZE", (0, 0), (-1, -1), fs), ("LEADING", (0, 0), (-1, -1), fs + 2 if fs < 9 else 12),
-                               ("LEFTPADDING", (0, 0), (-1, -1), pad), ("RIGHTPADDING", (0, 0), (-1, -1), pad)] + style))
+        t = make(rows, widths, fs, pad)
         if t.wrap(10000, 10000)[0] <= PAGE_W[1]:
             break
-    return t
+    if not runs:
+        return t
+    h = t._rowHeights  # measured without merging: a merged cell is never taller than the rows it covers
+    spans = []
+    for a, z in runs:
+        top, used = a, 0
+        for r in range(a, z + 1):
+            if r > top and used + h[r] > SPAN_MAX_H:
+                spans.append((top, r - 1))
+                top, used = r, 0
+            used += h[r]
+        spans.append((top, z))
+    return make(rows, widths, fs, pad, [("SPAN", (0, a), (0, z)) for a, z in spans if z > a])
 
 
 def _pdf_build(els, wide, title, note):
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
-
-    from reportlab.platypus import Table
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table
+    from reportlab.platypus.doctemplate import LayoutError
 
     def tables(xs):
         for x in xs:
@@ -1470,7 +1538,11 @@ def _pdf_build(els, wide, title, note):
         els += [Spacer(1, 10), Paragraph(_x(note.strip()), getSampleStyleSheet()["Normal"])]
     while els and isinstance(els[-1], Spacer):  # a trailing spacer that doesn't fit the page would push an empty page out
         els.pop()
-    doc.build(els)
+    try:
+        doc.build(els)
+    except LayoutError:  # something still too big for a page: say so instead of a bare server error
+        raise HTTPException(422, "This PDF doesn't fit on the page (too many warehouses or very long names). "
+                                 "Try fewer warehouses, or leave out the lot or last-updated column.")
     return buf.getvalue()
 
 

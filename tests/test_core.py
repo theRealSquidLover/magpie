@@ -221,7 +221,7 @@ def test_upgrade_from_v2_keeps_data(tmp_path, monkeypatch):
     assert c.execute("SELECT name FROM products").fetchone()[0] == "Keep"
     assert c.execute("SELECT v FROM meta WHERE k='schema'").fetchone()[0] == str(len(full))
     c.close()
-    assert any(f.startswith("pre-v2") for f in os.listdir(tmp_path / "backups"))
+    assert any(f.startswith("pre-update-") and "-schema2-" in f for f in os.listdir(tmp_path / "backups"))
 
 
 def test_build_stamp_and_no_cache_headers(cl):
@@ -361,7 +361,7 @@ def test_migration_from_v3_adds_role_and_pick_min():
         assert c.execute("SELECT role FROM locations").fetchone()[0] == "holding"
         assert c.execute("SELECT pick_min FROM variants").fetchone()[0] == 0
         c.close()
-        assert any(f.startswith("pre-v3") for f in os.listdir(os.path.join(d, "backups")))
+        assert any(f.startswith("pre-update-") and "-schema3-" in f for f in os.listdir(os.path.join(d, "backups")))
     finally:
         db.DATA, db.DB = old
 
@@ -1344,7 +1344,8 @@ def test_rejected_telegram_settings_change_nothing_and_ids_are_ascii(cl, monkeyp
     assert cl.get("/api/export/1?locs=²").status_code in (200, 404)
 
 
-def test_leftover_backup_tmp_does_not_block_backups(cl):
+def test_leftover_backup_tmp_does_not_block_backups(cl, monkeypatch):
+    import glob
     import sqlite3
     import time
 
@@ -1352,9 +1353,10 @@ def test_leftover_backup_tmp_does_not_block_backups(cl):
 
     d = os.path.join(db.DATA, "backups")
     os.makedirs(d, exist_ok=True)
-    path = os.path.join(d, "daily-%s.db" % time.strftime("%Y%m%d"))
-    if os.path.exists(path):
-        os.remove(path)
+    for f in glob.glob(os.path.join(d, "daily-%s*" % time.strftime("%Y%m%d"))):
+        os.remove(f)
+    monkeypatch.setattr(db, "_stamp", lambda: time.strftime("%Y%m%d") + "-120000")
+    path = os.path.join(d, db.backup_name("daily", len(db.MIGRATIONS), db.app_version()))
     for suffix in ("", "-journal"):
         with open(path + ".tmp" + suffix, "wb") as f:  # what a crash mid-backup can leave behind
             f.write(b"not a database " * 100)
@@ -1577,7 +1579,7 @@ def test_audit_migration_17_rebuilds_with_autoincrement_and_keeps_data(tmp_path,
     except Exception as e:
         assert "FOREIGN KEY" in str(e)
     c.close()
-    assert any(f.startswith("pre-v16") for f in os.listdir(tmp_path / "backups"))
+    assert any(f.startswith("pre-update-") and "-schema16-" in f for f in os.listdir(tmp_path / "backups"))
 
 
 def test_audit_reverse_move_needs_the_cartons_still_in_the_section(cl):
@@ -1614,6 +1616,91 @@ def test_audit_lots_match_whatever_the_case(cl):
     sync(cl, op("receive", "aul-r", product="AuLot", lot="LOT1", qty=5), op("sale", "aul-s", product="AuLot", lot="lot1", qty=5))
     rows = _mv(cl, "AuLot")
     assert {m["lot"] for m in rows} == {"LOT1"} and _tot(rows) == 0 and not any(m["flag"] for m in rows)
+
+
+def _secs_now(product, loc):
+    return {s: n for s, n in _piles(product, loc).items() if n}
+
+
+def test_ledger_a_move_after_an_oversell_moves_the_carton(cl):
+    # sale booked before the delivery: the delivery pays the debt once, and later moves move what they say
+    lid, s = _wh(cl, "LgF1Wh", "A", "C")
+    A, C = s["A"], s["C"]
+    P = dict(product="LgF1", colour="", size="", loc=lid)
+    sync(cl, op("receive", "lg1-r0", qty=0, **P))
+    sync(cl, op("sale", "lg1-s", qty=2, ts="2026-11-01T09:00:00Z", **P))
+    sync(cl, op("receive", "lg1-r", qty=3, section=A, ts="2026-11-01T10:00:00Z", **P))
+    assert _secs_now("LgF1", lid) == {A: 1}
+    assert sync(cl, op("move", "lg1-m", qty=1, from_section=A, section=C, **P))[0]["status"] == "ok"
+    assert _secs_now("LgF1", lid) == {C: 1}
+    assert sync(cl, op("move", "lg1-m2", qty=1, from_section=C, section=A, **P))[0]["status"] == "ok"
+    assert _secs_now("LgF1", lid) == {A: 1}
+    # undoing the oversell gives the 2 cartons back to the delivery that covered them
+    assert sync(cl, {"kind": "reverse", "uuid": "lg1-x", "of": "lg1-s"})[0]["status"] == "ok"
+    assert _secs_now("LgF1", lid) == {A: 3}
+
+
+def test_ledger_older_dated_stock_does_not_refill_an_emptied_section(cl):
+    lid, s = _wh(cl, "LgF2Wh", "A", "B", "C")
+    A, B, C = s["A"], s["B"], s["C"]
+    P = dict(product="LgF2", colour="", size="", loc=lid)
+    sync(cl, op("receive", "lg2-w1", qty=5, product="LgF2", colour="", size="", loc=1, ts="2025-06-01T00:00:00Z"))  # old stock elsewhere
+    sync(cl, op("receive", "lg2-r0", qty=0, **P))
+    sync(cl, op("sale", "lg2-s", qty=2, ts="2026-11-01T08:00:00Z", **P))
+    sync(cl, op("receive", "lg2-ra", qty=3, section=A, ts="2026-11-01T10:00:00Z", **P))
+    sync(cl, op("move", "lg2-m", qty=1, from_section=A, section=C, **P))
+    assert _secs_now("LgF2", lid) == {C: 1}  # A emptied into C with one move
+    # a receive typed offline earlier (09:00) and synced now: goes into B only
+    sync(cl, op("receive", "lg2-rb", qty=5, section=B, ts="2026-11-01T09:00:00Z", **P))
+    assert _secs_now("LgF2", lid) == {B: 5, C: 1}
+    # old cartons transferred in land in the home section (A) with their 2025 date; nothing else changes
+    sync(cl, op("transfer", "lg2-t", qty=5, product="LgF2", colour="", size="", loc=1, to=lid))
+    assert _secs_now("LgF2", lid) == {A: 5, B: 5, C: 1}
+
+
+def test_ledger_reversing_a_receive_after_a_move_takes_the_moved_cartons(cl):
+    lid, s = _wh(cl, "LgF3Wh", "A", "B", "C")
+    A, B, C = s["A"], s["B"], s["C"]
+    P = dict(product="LgF3", colour="", size="", loc=lid)
+    sync(cl, op("receive", "lg3-c", qty=5, section=C, ts="2026-10-01T00:00:00Z", **P))  # the real stock
+    sync(cl, op("receive", "lg3-a", qty=5, section=A, ts="2026-11-01T00:00:00Z", **P))  # typed by mistake
+    sync(cl, op("move", "lg3-m", qty=5, from_section=A, section=B, **P))
+    assert sync(cl, {"kind": "reverse", "uuid": "lg3-x", "of": "lg3-a", "note": "received twice"})[0]["status"] == "ok"
+    assert _secs_now("LgF3", lid) == {C: 5}
+    rows = _mv(cl, "LgF3")
+    assert not any(m["flag"] for m in rows)
+
+
+def test_ledger_reversal_only_refunds_the_debt_of_its_own_operation(cl):
+    # cartons that came from an oversold transfer carry the transfer's time as arrival date; a sale from them and its
+    # reversal must put them back where they were, not refund whoever paid the old debt with the same date
+    lid, s = _wh(cl, "LgF4Wh", "A", "B")
+    A, B = s["A"], s["B"]
+    P = dict(product="LgF4", colour="", size="")
+    ts = "2026-03-22T22:00:00Z"
+    sync(cl, op("receive", "lg4-r0", qty=0, loc=lid, **P), op("receive", "lg4-r1", qty=0, loc=2, **P))
+    sync(cl, op("transfer", "lg4-t", qty=4, loc=lid, to=2, ts=ts, **P))  # oversold: debt of 4 dated 22 March
+    sync(cl, op("receive", "lg4-r", qty=6, section=A, loc=lid, **P))  # pays it: A 2
+    sync(cl, op("transfer", "lg4-back", qty=4, loc=2, to=lid, **P))  # the 22 March cartons come back (home A)
+    sync(cl, op("move", "lg4-m", qty=6, from_section=A, section=B, loc=lid, **P))
+    assert _secs_now("LgF4", lid) == {B: 6}
+    sync(cl, op("move", "lg4-m2", qty=4, from_section=B, section=0, loc=lid, **P))  # the 22 March ones to Unsorted
+    assert _secs_now("LgF4", lid) == {0: 4, B: 2}
+    sync(cl, op("sale", "lg4-s", qty=1, loc=lid, **P))
+    before = _secs_now("LgF4", lid)
+    assert sync(cl, {"kind": "reverse", "uuid": "lg4-sx", "of": "lg4-s"})[0]["status"] == "ok"
+    assert _secs_now("LgF4", lid) == {0: 4, B: 2} and before != {0: 4, B: 2}
+
+
+def test_ledger_rows_are_replayed_in_the_order_they_were_applied(cl):
+    from app import db, main
+    # a sale typed with an older time than the delivery it was taken from still took from that delivery
+    lid, s = _wh(cl, "LgF5Wh", "A")
+    P = dict(product="LgF5", colour="", size="", loc=lid)
+    sync(cl, op("receive", "lg5-r", qty=3, section=s["A"], ts="2026-11-02T00:00:00Z", **P))
+    sync(cl, op("sale", "lg5-s", qty=2, ts="2026-11-01T00:00:00Z", **P))
+    assert _secs_now("LgF5", lid) == {s["A"]: 1}
+    assert not any(m["flag"] for m in _mv(cl, "LgF5"))
 
 
 def test_audit_strict_quantities_ids_and_types(cl):
@@ -1760,6 +1847,56 @@ def test_audit_wide_item_pdf_fits_the_page(cl):
         assert cl.post("/api/location/%d" % l, json={"active": False}).status_code == 200
 
 
+def test_item_pdf_with_a_tall_merged_colour_cell_still_prints(cl, monkeypatch):
+    # 20 rows of one colour whose cells wrap (long lot, many warehouses): one merged cell would be taller than a landscape
+    # page and reportlab failed the whole PDF (tg_pdf audit 2026-11-27 F1). It is now merged in pieces that fit.
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import Table
+    from app import db, main, tg
+    names = ["PdfSpan Container %d" % i for i in range(8)]
+    for n in names:
+        cl.post("/api/location", json={"name": n})
+    locs = [l["id"] for l in cl.get("/api/state").json()["locs"] if l["name"] in names]
+    P = dict(product="PdfSpan", colour="Navy blue with white stripes", lot="PL-2026-0098 MSKU1234567 second shipment Mersin", qty=1)
+    sizes = ["Super King fitted %d x 200" % (100 + i) for i in range(20)]
+    sync(*([cl] + [op("receive", "psp-%d-%d" % (i, l), size=s, loc=l, **P) for i, s in enumerate(sizes) for l in locs]))
+    ls = ",".join(map(str, locs))
+    c = db.connect()
+    try:
+        p = c.execute("SELECT * FROM products WHERE name='PdfSpan'").fetchone()
+        els, _ = main._pdf_item(c, p, 1, 1, 1, 1, 0, ls, 1, 0, "", 1, getSampleStyleSheet())
+    finally:
+        c.close()
+    t = [e for e in els if isinstance(e, Table)][0]
+    t.wrap(10000, 10000)
+    spans = [(a[1], b[1]) for cmd, a, b in [x[:3] for x in t._spanCmds]]
+    assert spans and sum(b - a + 1 for a, b in spans) == 20  # the colour is still merged, in several pieces
+    assert all(sum(t._rowHeights[a:b + 1]) <= main.SPAN_MAX_H for a, b in spans)
+    r = cl.get("/api/export/%d?locs=%s" % (p["id"], ls))
+    assert r.status_code == 200 and r.content[:4] == b"%PDF"
+    assert cl.get("/api/export?items=%d&locs=%s" % (p["id"], ls)).status_code == 200
+
+    # anything that still can't be laid out is a clear 422, and the bot says which PDF failed instead of sending nothing
+    from reportlab.platypus.doctemplate import LayoutError
+
+    def boom(self, *a, **k):
+        raise LayoutError("too large")
+    monkeypatch.setattr("reportlab.platypus.doctemplate.BaseDocTemplate.build", boom)
+    r = cl.get("/api/export/%d?locs=%s" % (p["id"], ls))
+    assert r.status_code == 422 and "doesn't fit on the page" in r.json()["detail"]
+    sent, docs = [], []
+    monkeypatch.setattr(tg, "allowed_users", lambda: {111})
+    monkeypatch.setattr(tg, "send", lambda tok, chat, text, html=False, markup=None: sent.append(text))
+    monkeypatch.setattr(tg, "send_document", lambda tok, chat, name, data, caption="": docs.append(name))
+    tg.handle({"update_id": 1, "message": {"text": "/stock pdfspan pdf", "from": {"id": 111}, "chat": {"id": 111, "type": "private"}}}, "t")
+    assert not docs and any(x.startswith("No PDF for PdfSpan: This PDF doesn't fit") for x in sent)
+    monkeypatch.undo()
+    for i, s in enumerate(sizes):  # tidy up: these warehouses would otherwise show in later tests' PDFs and bot replies
+        sync(*([cl] + [op("sale", "psp-s%d-%d" % (i, l), size=s, loc=l, **P) for l in locs]))
+    for l in locs:
+        assert cl.post("/api/location/%d" % l, json={"active": False}).status_code == 200
+
+
 def test_audit_stock_request_wraps_long_lots(cl, monkeypatch):
     import reportlab.platypus as rp
     from app import tg
@@ -1875,6 +2012,7 @@ def _backup_bytes_and_settings(path):
 
 
 def test_backups_never_hold_the_api_key_or_bot_token(cl, monkeypatch):
+    import glob
     import sqlite3
     import time
 
@@ -1885,10 +2023,10 @@ def test_backups_never_hold_the_api_key_or_bot_token(cl, monkeypatch):
     assert cl.post("/api/telegram", json={"token": tok, "group": "-100"}).status_code == 200
     d = os.path.join(db.DATA, "backups")
     os.makedirs(d, exist_ok=True)
-    path = os.path.join(d, "daily-%s.db" % time.strftime("%Y%m%d"))
-    if os.path.exists(path):
-        os.remove(path)
+    for f in glob.glob(os.path.join(d, "daily-%s*" % time.strftime("%Y%m%d"))):
+        os.remove(f)
     db.backup_daily()
+    path = glob.glob(os.path.join(d, "daily-%s*.db" % time.strftime("%Y%m%d")))[0]
     raw, kv = _backup_bytes_and_settings(path)
     assert "anthropic_api_key" not in kv and "tg_token" not in kv
     assert kv.get("tg_group") == "-100"  # everything else is kept
@@ -2005,3 +2143,134 @@ def test_map_upload_must_be_a_picture(cl):
     assert r.status_code == 413
     r = cl.post("/api/location/%d/map" % lid, files={"file": ("map.jpg", b"\xff\xd8\xff\xe0 tiny", "image/jpeg")})
     assert r.status_code == 200
+
+
+# ---------- backups: versioned names, manifest, mirror, restore ----------
+
+def _fresh_data(tmp_path, monkeypatch):
+    from app import db
+    d = tmp_path / "data"
+    monkeypatch.setattr(db, "DATA", str(d))
+    monkeypatch.setattr(db, "DB", str(d / "stock.db"))
+    db.migrate()
+    c = db.connect()
+    c.execute("INSERT INTO products(name) VALUES('Kept')")
+    c.close()
+    return d
+
+
+def test_backup_names_carry_time_schema_and_app_version_with_a_checked_manifest(tmp_path, monkeypatch):
+    import json
+    import re
+
+    from app import db
+    monkeypatch.setenv("APP_VERSION", "f5b0216e0a1b2c3d")
+    d = _fresh_data(tmp_path, monkeypatch)
+    db.backup_daily()
+    (name,) = [n for n in os.listdir(d / "backups") if n.endswith(".db")]
+    assert re.fullmatch(r"daily-\d{8}-\d{6}-schema%d-app-f5b0216\.db" % len(db.MIGRATIONS), name)
+    m = json.load(open(d / "backups" / (name + ".json")))
+    assert m["sha256"] == db._sha256(str(d / "backups" / name)) and m["image_tag"] == "sha-f5b0216"
+    assert m["schema"] == len(db.MIGRATIONS) and m["rows"]["products"] == 1 and m["kind"] == "daily"
+    db.backup_daily()  # once a day only
+    assert len([n for n in os.listdir(d / "backups") if n.endswith(".db")]) == 1
+
+    # a new build on existing data takes a pre-update copy named after the build that wrote the data
+    monkeypatch.setenv("APP_VERSION", "aaaaaaa1111")
+    db.migrate()
+    pre = [n for n in os.listdir(d / "backups") if n.startswith("pre-update-") and n.endswith(".db")]
+    assert len(pre) == 1 and pre[0].endswith("-app-f5b0216.db")
+    db.migrate()  # same build again: no new copy
+    assert len([n for n in os.listdir(d / "backups") if n.startswith("pre-update-") and n.endswith(".db")]) == 1
+
+
+def test_pruning_keeps_old_and_new_names_in_order(tmp_path):
+    from app import db
+    d = tmp_path
+    old = ["daily-202611%02d.db" % i for i in range(1, 11)]
+    new = ["daily-202611%02d-010000-schema20-app-abc1234.db" % i for i in range(11, 21)]
+    for n in old + new:
+        (d / n).write_bytes(b"x")
+        (d / (n + ".json")).write_text("{}")
+    for i, n in enumerate(["pre-v3-1700000000.db"] + ["pre-update-2026110%d-010000-schema5-app-x.db" % i for i in range(1, 7)]):
+        (d / n).write_bytes(b"x")
+        os.utime(d / n, (1700000000 + i, 1700000000 + i))
+    db.prune(str(d))
+    left = sorted(n for n in os.listdir(d) if n.startswith("daily-") and n.endswith(".db"))
+    assert left == sorted(old[6:] + new) and not (d / (old[0] + ".json")).exists()
+    pre = [n for n in os.listdir(d) if n.startswith("pre-")]
+    assert len(pre) == 5 and "pre-v3-1700000000.db" not in pre and "pre-update-20261101-010000-schema5-app-x.db" not in pre
+
+
+def test_mirror_copies_backups_photos_and_maps_and_reports_a_missing_mount(tmp_path, monkeypatch):
+    from app import db
+    d = _fresh_data(tmp_path, monkeypatch)
+    (d / "photos").mkdir()
+    (d / "photos" / "a.jpg").write_bytes(b"\xff\xd8a")
+    (d / "maps").mkdir()
+    (d / "maps" / "1.png").write_bytes(b"\x89PNGm")
+    monkeypatch.setenv("BACKUP_MIRROR_DIR", str(tmp_path / "missing"))
+    db.backup_daily()  # the local copy still works; the mirror error is reported
+    st = db.backup_status()
+    assert st["error"] == "" and st["mirror"] and "doesn't exist" in st["mirror_error"]
+    assert not (tmp_path / "missing").exists()
+    m = tmp_path / "offsite"
+    m.mkdir()  # what Docker leaves when the disk isn't mounted: an empty folder, no marker
+    monkeypatch.setenv("BACKUP_MIRROR_DIR", str(m))
+    db.backup_daily()
+    st = db.backup_status()
+    assert st["error"] == "" and "has no .magpie-mirror file - is the disk mounted?" in st["mirror_error"]
+    assert os.listdir(m) == []
+    (m / ".magpie-mirror").write_bytes(b"")
+    db.backup_daily()
+    st = db.backup_status()
+    assert st["mirror_error"] == "" and st["mirror_last"]
+    assert sorted(os.listdir(m / "backups")) == sorted(os.listdir(d / "backups"))
+    assert (m / "photos" / "a.jpg").read_bytes() == b"\xff\xd8a" and (m / "maps" / "1.png").exists()
+    monkeypatch.setenv("BACKUP_MIRROR_DIR", str(d / "inside"))
+    (d / "inside").mkdir()
+    with pytest.raises(RuntimeError, match="inside the data folder"):
+        db.mirror()
+
+
+def test_restore_command_checks_the_copy_keeps_the_replaced_db_and_refuses_while_running(tmp_path, monkeypatch):
+    import sqlite3
+
+    from app import db, restore
+    monkeypatch.setenv("APP_VERSION", "1234567abc")
+    d = _fresh_data(tmp_path, monkeypatch)
+    db.backup_daily()
+    (name,) = [n for n in os.listdir(d / "backups") if n.endswith(".db")]
+    c = db.connect()
+    c.execute("INSERT INTO products(name) VALUES('Made after the backup')")
+    c.close()
+    (d / "stock.db-wal").write_bytes(b"newest changes")  # what a stopped container can leave beside the database
+    msgs = []
+    assert restore.restore("nope.db", out=msgs.append) == 2
+
+    lock = db.hold_lock()  # the app is running
+    assert restore.restore(name, out=msgs.append) == 3 and "still running" in msgs[-1]
+    lock.close()
+
+    rows = restore.listing()
+    assert rows and rows[0][2] == name and rows[0][3]
+    assert restore.restore(name, out=msgs.append) == 0
+    c = sqlite3.connect(str(d / "stock.db"))
+    assert [r[0] for r in c.execute("SELECT name FROM products")] == ["Kept"]
+    c.close()
+    (kept,) = [p for p in os.listdir(d / "backups") if p.startswith("replaced-")]
+    assert "stock.db" in os.listdir(d / "backups" / kept) and "stock.db-wal" in os.listdir(d / "backups" / kept)
+    assert not os.path.exists(str(d / "stock.db-wal"))
+    db.migrate()  # the app starts on the restored copy
+    c = db.connect()
+    assert c.execute("SELECT COUNT(*) FROM products").fetchone()[0] == 1
+    c.close()
+
+    # a damaged copy (checksum no longer matches) is refused and nothing is replaced
+    p = d / "backups" / name
+    raw = bytearray(p.read_bytes())
+    raw[-10] ^= 0xFF
+    p.write_bytes(bytes(raw))
+    assert restore.restore(name, out=msgs.append) == 4 and "checksum" in msgs[-1]
+    assert [r[3] for r in restore.listing() if r[2] == name] == [False]
+    assert len([p for p in os.listdir(d / "backups") if p.startswith("replaced-")]) == 1

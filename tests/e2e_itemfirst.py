@@ -28,7 +28,7 @@ def boot():
         pass
     pr = subprocess.Popen([sys.executable, "-m", "uvicorn", "app.main:app", "--port", str(PORT)], env=env,
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=ROOT)
-    for _ in range(100):
+    for _ in range(300):
         try:
             requests.get(U + "/api/health", timeout=1)
             return pr
@@ -60,6 +60,7 @@ try:
     ops = []
     for i, (c, z, q, loc) in enumerate([("Navy", "S", 10, 1), ("Navy", "M", 6, 1), ("Navy", "M", 4, W2), ("Light grey", "S", 3, 1), ("Assorted", "M", 8, W2), ("Design 9", "S", 5, 1), ("Zzz", "S", 2, 1)]):
         ops.append({"kind": "receive", "uuid": "r%d" % i, "product": "Polo shirt", "colour": c, "size": z, "lot": "", "loc": loc, "qty": q})
+    ops.append({"kind": "receive", "uuid": "r0", "product": "Polo shirt", "colour": "Navy", "size": "XL", "lot": "", "loc": 1, "qty": 0})  # registered with 0: not a line in stock
     requests.post(U + "/api/sync", json={"ops": ops})
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
@@ -78,7 +79,7 @@ try:
         pg.click("#main .row:has-text('Polo shirt')")
         pg.wait_for_timeout(200)
         check("classic: tapping an item expands it", pg.locator("#ipg").count() == 0 and pg.locator("#main .sub").count() > 0)
-        check("classic: no + button", pg.locator("#iqb").count() == 0)
+        check("classic: classic bottom bar", pg.locator("#bn-plus").count() == 0 and pg.locator("#bn-set").count() == 1)
 
         pg.click("#bn-set")
         pg.wait_for_timeout(300)
@@ -86,14 +87,16 @@ try:
         check("switch saved on this phone", pg.evaluate("localStorage.getItem('ifirst')") == "1")
         pg.click("#bn-stock")
         pg.wait_for_timeout(300)
-        check("+ button on Stock", pg.locator("#iqb").count() == 1)
+        check("one bottom bar: Stock, Receive, +, Alerts, More", pg.locator("#bnav button").all_inner_texts() == ["Stock", "Receive", "+", "Alerts", "More"], pg.locator("#bnav button").all_inner_texts())
+        check("status chip instead of the status line", pg.inner_text("#schip").strip().endswith("Online"), pg.inner_text("#hdr"))
         pg.evaluate("O={}")
         pg.evaluate("render()")
         pg.click("#main .row:has-text('Polo shirt')")
         pg.wait_for_timeout(300)
         check("item page opens", pg.locator("#ipg").count() == 1)
         txt = pg.inner_text("#ipg")
-        check("item total", "38" in pg.inner_text("#ipg .itot"), pg.inner_text("#ipg .itot"))
+        check("header shows lines in stock, not a carton total", pg.inner_text("#ipg .itot").split()[:4] == ["6", "lines", "in", "stock"], pg.inner_text("#ipg .itot"))
+        check("warehouse chips without totals", pg.locator("#ipg .chip").all_inner_texts() == ["All warehouses", "Main: Ground", "Yellow"], pg.locator("#ipg .chip").all_inner_texts())
         cell = lambda c, z: pg.locator("#ipg .icl[aria-label^='Polo shirt · %s · %s:']" % (c, z))
         check("grid cell Navy M = 10 (both warehouses)", cell("Navy", "M").inner_text() == "10", cell("Navy", "M").inner_text())
         check("grid has a blank where a line doesn't exist", pg.locator("#ipg td.ix").count() > 0)
@@ -106,8 +109,8 @@ try:
         check("swatch: grey card colour when nothing matches", "var(--card)" in swd.get("Zzz", ""), swd)
         pg.click("#ipg .chip:has-text('Yellow')")
         pg.wait_for_timeout(200)
-        check("warehouse chip filters the grid", cell("Navy", "M").inner_text() == "4" and "12" in pg.inner_text("#ipg .itot"), (cell("Navy", "M").inner_text(), pg.inner_text("#ipg .itot")))
-        pg.click("#ipg .chip:has-text('All')")
+        check("warehouse chip filters the grid", cell("Navy", "M").inner_text() == "4" and pg.inner_text("#ipg .itot").startswith("2"), (cell("Navy", "M").inner_text(), pg.inner_text("#ipg .itot")))
+        pg.click("#ipg .chip:has-text('All warehouses')")
         pg.wait_for_timeout(200)
 
         # sell from a cell
@@ -171,7 +174,39 @@ try:
         check("back closes the item page", pg.locator("#ipg").count() == 0 and pg.evaluate("IP") is None)
 
         # + button
-        pg.click("#iqb")
+        check("item-first: no top tabs on Stock", not pg.is_visible("#nav"))
+        sw = pg.evaluate("[...document.querySelectorAll('#main .row .rsw .isw')].length")
+        check("Stock rows show one swatch per colour", sw == 5, sw)
+        check("no + photo box on rows without a photo", pg.locator("#main .row .ph").count() == 0)
+        pg.click("#bn-plus")
+        pg.wait_for_timeout(300)
+        labels = pg.locator("#isd .iam b").all_inner_texts()
+        check("+ menu: Sell, Move, Recount", labels == ["Sell", "Move", "Recount"], labels)
+        pg.keyboard.press("Escape")
+        pg.click("#bn-more")
+        pg.wait_for_timeout(300)
+        labels = pg.locator("#isd .iam b").all_inner_texts()
+        check("More has every other screen", labels == ["Report", "Log", "Warehouses", "Settings", "Sale / Adjust form", "Transfer form"], labels)
+        pg.click("#mm-rep")
+        pg.wait_for_timeout(300)
+        check("Report opens under More", pg.inner_text("#ttl") == "Report" and "on" in pg.get_attribute("#bn-more", "class"))
+        pg.click("#bn-rcv")
+        pg.wait_for_timeout(300)
+        check("Receive is a tab of its own", pg.evaluate("tab") == "Receive" and pg.locator("#loc").count() == 1)
+        rc = pg.locator("#main .rrc .chip").all_inner_texts()
+        check("Receive starts with recent items, Read box photo and New item", rc[0] == "Polo shirt" and rc[-2:] == ["📷 Read box photo", "+ New item"], rc)
+        check("Receiving several? comes before colour and size", pg.evaluate("!!(document.getElementById('rmode').compareDocumentPosition(document.getElementById('col')) & 4)"))
+        check("Per carton sits in More details", pg.evaluate("!!document.getElementById('ppc').closest('details')"))
+        pg.click("#main .rrc .chip:has-text('Polo shirt')")
+        pg.wait_for_timeout(400)  # a pick ignores taps for 300 ms (ghost-click guard)
+        check("tapping a recent item picks it", pg.input_value("#nm") == "Polo shirt", pg.input_value("#nm"))
+        pg.click("#main .rrc .chip:has-text('New item')")
+        check("New item clears the field", pg.input_value("#nm") == "" and pg.evaluate("PSEL") is None, (pg.input_value("#nm"), pg.evaluate("PSEL"), pg.evaluate("tab")))
+        pg.click("#bn-stock")
+        pg.wait_for_timeout(300)
+        pg.click("#bn-plus")
+        pg.wait_for_timeout(300)
+        pg.click("#isd .iam:has-text('Sell')")
         pg.wait_for_timeout(300)
         pg.fill("#iqq", "assorted")
         pg.wait_for_timeout(100)
@@ -183,13 +218,39 @@ try:
         pg.wait_for_timeout(1500)
         check("+ sale saved", tot("Assorted", "M") == 7, tot("Assorted", "M"))
 
+        # a prepared (pending) item opens its own page
+        requests.post(U + "/api/sync", json={"ops": [{"kind": "prepare", "uuid": "pp1", "product": "Duvet cover", "colour": "Sage", "size": "Double"}]})
+        pg.evaluate("sync()")
+        pg.wait_for_timeout(1500)
+        pg.evaluate("render()")
+        if pg.locator("#main .row:has-text('Duvet cover')").count() == 0:
+            pg.click("#main .cath:has-text('Pending')")
+        pg.click("#main .row:has-text('Duvet cover')")
+        pg.wait_for_timeout(300)
+        check("pending item opens an item page", pg.locator("#ipg").count() == 1 and "not received yet" in pg.inner_text("#ipg"))
+        check("pending item page has Receive now and Activate", pg.locator("#ipg .iac button").all_inner_texts() == ["Receive now", "Activate"], pg.locator("#ipg .iac button").all_inner_texts())
+        pg.click("#ipg .iac button:has-text('Receive now')")
+        pg.wait_for_timeout(500)
+        check("Receive now opens Receive with the item", pg.evaluate("tab") == "Receive" and "Duvet cover" in pg.input_value("#nm"), pg.evaluate("tab"))
+        pg.click("#bn-stock")
+        pg.wait_for_timeout(300)
+
         # classic tabs untouched
-        pg.click("#bn-set")
+        pg.click("#bn-more")
+        pg.wait_for_timeout(300)
+        pg.click("#mm-set")
         pg.wait_for_timeout(200)
         pg.select_option("#lay", "0")
         pg.click("#bn-stock")
         pg.wait_for_timeout(200)
-        check("switch off: no + button again", pg.locator("#iqb").count() == 0)
+        pg.click("#bn-stock") if pg.locator("#bn-stock").count() else None
+        pg.evaluate("go('Receive')")
+        pg.wait_for_timeout(200)
+        check("switch off: classic Receive (no recent strip, Per carton outside More details)", pg.locator("#main .rrc").count() == 0 and not pg.evaluate("!!document.getElementById('ppc').closest('details')"))
+        pg.evaluate("go('Stock')")
+        pg.wait_for_timeout(200)
+        check("switch off: classic bottom bar again", pg.locator("#bn-plus").count() == 0 and pg.locator("#bn-set").count() == 1)
+        check("switch off: tabs and no swatches", pg.is_visible("#nav") and "Receive" in pg.inner_text("#nav") and pg.locator("#main .rsw").count() == 0)
         b.close()
         check("no page errors", not errs, errs[:3])
 finally:

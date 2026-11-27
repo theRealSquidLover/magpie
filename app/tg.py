@@ -504,7 +504,9 @@ def pdf_query(text, bot=""):
 
 
 def item_pdfs(query, limit=3, pid=None):
-    """Full stock PDF (same as the app's export with default options) for the items matching the words. Returns ([(name, bytes)], extra_count)."""
+    """Full stock PDF (same as the app's export with default options) for the items matching the words.
+    Returns ([(file name, bytes, item name)], extra_count). An item whose PDF can't be made comes back as
+    (reason, None, item name), so the others are still sent and the chat is told which one failed."""
     from . import main  # late import: main imports this module
     words = [w for w in query.lower().split() if w]
     if not words and pid is None:
@@ -518,10 +520,22 @@ def item_pdfs(query, limit=3, pid=None):
     order = sorted(hit.items(), key=lambda kv: _natural(kv[1][0]))
     out = []
     for pid, (name, grp) in order[:limit]:
-        r = main.export(pid, split="size" if grp == "size" else "")  # same default as the app: size-first items get a table per size
+        try:
+            r = main.export(pid, split="size" if grp == "size" else "")  # same default as the app: size-first items get a table per size
+        except Exception as e:
+            out.append((getattr(e, "detail", None) or "the PDF could not be made (%s)" % type(e).__name__, None, name))
+            continue
         m = re.search(r'filename="([^"]+)"', r.headers.get("content-disposition", ""))
         out.append((m.group(1) if m else "stock.pdf", r.body, name))
     return out, max(len(order) - limit, 0)
+
+
+def send_item_pdfs(token, chat, docs):
+    for fn, data, name in docs:
+        if data is None:
+            send(token, chat, "No PDF for %s: %s" % (name, fn))
+        else:
+            send_document(token, chat, fn, data, name)
 
 
 def _chat_ok(chat, user):
@@ -559,9 +573,7 @@ def handle_button(cq, token):
     finally:
         c.close()
     if want_pdf:
-        docs, _ = item_pdfs("", pid=pid)
-        for fn, data, name in docs:
-            send_document(token, chat["id"], fn, data, name)
+        send_item_pdfs(token, chat["id"], item_pdfs("", pid=pid)[0])
 
 
 def handle(update, token):
@@ -595,8 +607,7 @@ def handle(update, token):
     q = pdf_query(text, bot)
     if q is not None:
         docs, extra = item_pdfs(q) if q.strip() else ([], 0)
-        for fn, data, name in docs:
-            send_document(token, chat["id"], fn, data, name)
+        send_item_pdfs(token, chat["id"], docs)
         if extra:
             send(token, chat["id"], "%d more item%s matched. Add more words to narrow it down." % (extra, "" if extra == 1 else "s"))
 

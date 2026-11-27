@@ -31,7 +31,7 @@ def boot():
         pass
     pr = subprocess.Popen([sys.executable, "-m", "uvicorn", "app.main:app", "--port", str(PORT)], env=env,
                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, cwd=ROOT)
-    for _ in range(100):
+    for _ in range(300):
         try:
             requests.get(U + "/api/health", timeout=1)
             return pr

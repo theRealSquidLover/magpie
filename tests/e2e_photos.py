@@ -55,6 +55,8 @@ try:
         check("details list shows the reason","Picture too large" in pg.inner_text("#phov"),pg.inner_text("#phov")[:200])
         pg.click("#phov button:has-text('Retry')");time.sleep(2.5)
         check("retry saved it",bool(prod("Towel")[0]["photo"]) and pg.evaluate("REJ.length")==0)
+        # the list re-renders after the retry's sync round-trip ends; wait for it instead of a fixed sleep
+        until(pg,"(document.getElementById('phov')||{}).innerText.indexOf('Saved \u2713')>=0")
         check("  list now says saved","Saved ✓" in pg.inner_text("#phov"),pg.inner_text("#phov")[:200])
         pg.click("#phov button:has-text('Close')")
         check("  bar says saved","saved ✓" in pg.inner_text("#phbar"),pg.inner_text("#phbar"))

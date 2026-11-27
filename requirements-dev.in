@@ -1,0 +1,6 @@
+-r requirements.in
+pytest>=8
+httpx>=0.27
+pypdf>=4
+playwright==1.63.0  # must match the Chromium build preinstalled in the cloud sandbox
+requests

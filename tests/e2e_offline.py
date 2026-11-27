@@ -4,7 +4,7 @@ Run from the repo root: python3 tests/e2e_offline.py"""
 import os,tempfile,subprocess,time,sys,requests,json
 D=tempfile.mkdtemp();env=dict(os.environ,DATA_DIR=D,TZ="Europe/Athens");U="http://127.0.0.1:18988"
 pr=subprocess.Popen([sys.executable,"-m","uvicorn","app.main:app","--port","18988"],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-for _ in range(100):
+for _ in range(300):
     try: requests.get(U+"/api/health",timeout=1);break
     except requests.RequestException: time.sleep(.1)
 def st(): return requests.get(U+"/api/state").json()

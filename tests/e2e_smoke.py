@@ -365,7 +365,8 @@ try:
         tab("Stock")
         pg.evaluate("CO['c:__pend']=false;O['p%d']=1;edt('z%d|180 Round')" % (tcid, tcid))
         pg.locator("button:has-text('Delete')").first.click()
-        time.sleep(.8)
+        # call() clears ED once the save round-trip ends; opening the next form before that lets it be wiped
+        pg.wait_for_function("ED===null", timeout=10000)
         tcv = sorted((v["colour"], v["size"]) for v in st()["vars"] if v["prod"] == tcid)
         robe = [x for x in st()["prods"] if x["name"] == "Kids Robe"][0]["id"]
         pg.evaluate("O['p%d']=1;edt('p%d')" % (robe, robe))

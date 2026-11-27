@@ -48,7 +48,7 @@ It was built for a textiles wholesaler (items come in colours, sizes and lots, a
 **Built to be safe with your data**
 - Stock is never stored as a number. It's always worked out from an append-only list of movements, so the history explains every figure.
 - It works offline. Entries are queued on the phone, sent once the connection returns, and never applied twice. A sale made offline that takes a line below zero is still accepted (it really happened), but it's flagged.
-- A verified backup is made every day (the last 14 are kept), and another one before every database upgrade.
+- A verified backup is made every day (the last 14 are kept), and another one before every update. Each file is named with its date and time, the app version and the database version, and has a checksum. A second copy can go to another disk, and one command restores a backup.
 
 ## How it runs
 
@@ -128,32 +128,71 @@ Pull the new image and restart: `docker compose pull && docker compose up -d`. O
 
 The phone loads the new version the next time it has a connection. If the app is already open, a banner offers **Update now**. Settings shows the app and server versions.
 
-**Rolling back:** images are also tagged by commit (`:sha-abc1234`), so you can change the tag in the compose file. If the update upgraded the database, also restore the matching `backups/pre-vN-*.db`:
-
-1. Stop the container and wait until it has really stopped.
-2. Move `stock.db-wal` and `stock.db-shm` out of the data folder, if they're there. They hold the newest changes to the database you're replacing. If you leave them, they would be replayed into the restored copy and corrupt it.
-3. Copy the backup over `stock.db`, keeping the old one somewhere safe.
-4. Start the container. Backups leave out the API key and bot token, so paste them into Settings again (not needed if they come from the container, see Backups below).
-
-The same steps restore a `daily-*.db` backup.
+**Rolling back:** images are also tagged by commit (`:sha-abc1234`), so you can change the tag in the compose file. Every update takes a backup first, named after the version it replaces, e.g. `pre-update-20261127-073012-schema19-app-abc1234.db`. If the update changed or damaged data, restore that file too (see Restoring below), then set the tag to `:sha-abc1234` before you start the container.
 
 ## Backups
-The data folder holds `stock.db`, `photos/`, `maps/` and `backups/`. The built-in backups are on the same disk and cover only `stock.db`, so include the whole folder in a backup to another disk or machine, and test a restore once.
 
-The saved API key and bot token are left out of every backup. They can also be given to the container instead of Settings: `ANTHROPIC_API_KEY` / `TELEGRAM_BOT_TOKEN`, or files named by `ANTHROPIC_API_KEY_FILE` / `TELEGRAM_BOT_TOKEN_FILE` (Docker secrets). A value saved in Settings wins. Files in the data folder are readable by the container's user only (600), so open them as root.
+The data folder holds `stock.db`, `photos/`, `maps/` and `backups/`.
+
+**What the app makes, in `backups/`:**
+
+| File | When | Kept |
+|---|---|---|
+| `daily-20261127-073012-schema19-app-f5b0216.db` | Once a day, checked hourly, starting when the container starts | Newest 14 |
+| `pre-update-20261127-073012-schema18-app-abc1234.db` | On start-up, before a database upgrade or when a new app version starts on existing data | Newest 5 |
+
+The name gives the date and time it was made (in `TZ`), the database version inside it, and the app version that wrote it. That version is also the image tag (`:sha-f5b0216`) that runs the same code. Each copy is a consistent snapshot even while the app is writing. It's checked with SQLite's integrity check and only then moved into place, so a crash can't leave half a file. Next to each one is a `.json` with its SHA-256 checksum, row counts and versions. The API key and bot token are left out of every copy.
+
+**A second copy on another disk (recommended):** these backups sit on the same disk as the database and don't include photos or maps. Mount a folder on another disk, pool or machine into the container and set `BACKUP_MIRROR_DIR` to it:
+
+```yaml
+    volumes:
+      - /mnt/user/appdata/magpie:/data
+      - /mnt/disks/backup/magpie:/mirror   # another disk, or an NFS/SMB share from another machine
+    environment:
+      BACKUP_MIRROR_DIR: "/mirror"
+```
+
+Then, once, with the backup disk mounted, put an empty marker file named `.magpie-mirror` in that folder on the disk itself, for example `touch /mnt/disks/backup/magpie/.magpie-mirror` on the Unraid terminal. The app only writes to a mirror folder that holds this file. When the disk isn't mounted as the container starts, Docker quietly creates the folder as an empty one (on Unraid that is in RAM, lost at reboot); without the marker nothing is copied there and Settings › About shows "Second copy FAILED: Mirror folder /mirror has no .magpie-mirror file - is the disk mounted?". Mount the disk and restart the container. Point the mirror at a different physical disk, pool or machine than the one holding `/data`; the app can't tell (on Unraid all `/mnt/user/...` shares look like one disk to the container).
+
+After each daily backup, the app copies the backups, photos and maps there. It only adds and updates files, so a photo deleted in the app stays in the mirror. The mirror keeps its own newest 14 + 5 backups. If the folder isn't there, has no marker or is on the same disk, nothing is written and Settings › About shows "Second copy FAILED" with the reason. Including the whole data folder in your normal server backup (e.g. Unraid's Appdata Backup) is still a good idea.
+
+**Restoring.** Use the newest image for this, even when rolling back, because older images don't have the command. First list the backups and check them. This also works while the app is running:
+
+```
+docker exec magpie python -m app.restore
+```
+
+Then stop the container, wait until it has stopped, and restore the one you want in a one-off container with the same folders:
+
+```
+docker stop magpie
+docker run --rm -v /mnt/user/appdata/magpie:/data ghcr.io/therealsquidlover/magpie:latest \
+  python -m app.restore daily-20261127-073012-schema19-app-f5b0216.db
+docker start magpie
+```
+
+The command refuses if the app is still running or the file's checksum doesn't match. It moves the current `stock.db` and its `-wal`/`-shm` into `backups/replaced-<time>/` (it never deletes them) and puts the copy in place. With a mirror, add its volume and `-e BACKUP_MIRROR_DIR=/mirror` to restore from it, and `--files` to copy back missing photos and maps. Afterwards, paste the API key and bot token into Settings again (not needed if they come from the container).
+
+To do it by hand instead: stop the container, move `stock.db`, `stock.db-wal` and `stock.db-shm` out of the folder (if you leave the `-wal`, it gets replayed into the restored copy and corrupts it), copy the backup to `stock.db`, and start the container. Older backups named `daily-YYYYMMDD.db` or `pre-vN-<number>.db` restore the same way.
+
+Test a restore once, on a copy of the folder, so you know it works before you need it.
+
+**Secrets.** The saved API key and bot token are left out of every backup. They can also be given to the container instead of Settings: `ANTHROPIC_API_KEY` / `TELEGRAM_BOT_TOKEN`, or files named by `ANTHROPIC_API_KEY_FILE` / `TELEGRAM_BOT_TOKEN_FILE` (Docker secrets). A value saved in Settings wins. Files in the data folder are readable by the container's user only (600), so open them as root.
 
 ## Development
 
 ```
-pip install -r requirements-dev.txt
+pip install --require-hashes --only-binary=:all: -r requirements-dev.txt   # hashed lockfile, wheels only
 DATA_DIR=./data uvicorn app.main:app --port 8080
 python -m pytest -q tests
 python tests/check_js.py          # syntax check of the app's script (needs node)
-python tests/e2e_smoke.py         # the whole app in a headless browser (pip install playwright requests; playwright install chromium)
+python tests/e2e_smoke.py         # the whole app in a headless browser (Chromium)
 python tests/e2e_offline.py       # offline and sync robustness
 python scripts/screenshots.py     # rebuild the README screenshots from demo data
 ```
 
+- The browser tests use the `playwright` pinned in `requirements-dev.txt`. It needs the matching Chromium build: `python -m playwright install chromium` (downloads it from Microsoft's CDN, pinned by that version), or point `PLAYWRIGHT_BROWSERS_PATH` at one you already have. Never `pip install` a package by bare name; add it to `requirements-dev.in` and regenerate the lockfile (see `CLAUDE.md`).
 - Schema changes go at the end of `MIGRATIONS` in `app/db.py`. Never edit an existing migration.
 - CI runs the tests on every pull request. On `main`, it builds the image and publishes it to `ghcr.io/<owner>/<repo>`.
 

@@ -1,0 +1,31 @@
+{
+  "name": "stockapp",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "dev",
+  "containerEnv": {
+    "DATA_DIR": "/home/dev/data",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  // Don't hand the host's SSH agent to code running in the container.
+  // The git and Docker credential settings that VS Code honours only at user
+  // level are in docs/dev-security.md.
+  "remoteEnv": {
+    "SSH_AUTH_SOCK": ""
+  },
+  "forwardPorts": [8080],
+  "postCreateCommand": "mkdir -p /home/dev/data",
+  "customizations": {
+    "vscode": {
+      // Add extensions here only with an exact version, e.g. "ms-python.python@2026.x.y".
+      "extensions": [],
+      "settings": {
+        "task.allowAutomaticTasks": "off",
+        "extensions.autoUpdate": false,
+        "extensions.autoCheckUpdates": false
+      }
+    }
+  }
+}

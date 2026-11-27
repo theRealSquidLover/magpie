@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: sudo apt-get update && sudo apt-get install -y poppler-utils
-      - run: pip install -r requirements-dev.txt
+      - run: 'pip install --require-hashes --only-binary=:all: -r requirements-dev.txt'
       - run: python -m pytest -q tests
       - run: python tests/check_js.py  # node --check on the app's inline script (node ships with ubuntu-latest)
   e2e:  # the app in a real (headless) browser: smoke, offline, photos, sync safety
@@ -30,13 +30,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements-dev.txt "playwright==1.63.0" requests
+      # playwright and requests are pinned in requirements-dev.txt
+      - run: 'pip install --require-hashes --only-binary=:all: -r requirements-dev.txt'
       - run: python -m playwright install --with-deps chromium
       - run: python tests/e2e_smoke.py
       - run: python tests/e2e_offline.py
       - run: python tests/e2e_photos.py
       - run: python tests/e2e_sync.py
       - run: python tests/e2e_itemfirst.py
+      - run: python tests/e2e_audit2.py
+      - run: python tests/e2e_piles.py  # phone and server place stock in the same sections
   build:
     needs: [test, e2e]
     if: github.event_name != 'pull_request'

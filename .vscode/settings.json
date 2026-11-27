@@ -1,0 +1,19 @@
+{
+  // Workspace hardening, from crftd.tech "Notes on safer development, part 1.5".
+  // VS Code applies only some settings at workspace level. Updates, extension
+  // auto-update and the dev-container credential settings are user-level: see
+  // docs/dev-security.md for the snippet to paste into your User settings.
+  "task.allowAutomaticTasks": "off",
+  "task.autoDetect": "off",
+  "npm.autoDetect": "off",
+  "gulp.autoDetect": "off",
+  "grunt.autoDetect": "off",
+  "jake.autoDetect": "off",
+  "extensions.ignoreRecommendations": true,
+  "extensions.autoUpdate": false,
+  "extensions.autoCheckUpdates": false,
+  "update.mode": "none",
+  "dev.containers.dockerCredentialHelper": false,
+  "dev.containers.copyGitConfig": false,
+  "dev.containers.gitCredentialHelperConfigLocation": "none"
+}
